@@ -1,0 +1,122 @@
+@startuml pomodoro_participants
+left to right direction
+
+' ===========================
+' Classes principales
+' ===========================
+
+class User {
+  +demarrerTimer(task, cycle)
+  +pauseTimer()
+  +arreterTimer()
+  +reinitialiserTimer()
+  +selectionnerCycle(cycle)
+  +ajouterTache(title, description)
+  +modifierTache(task, ...)
+  +supprimerTache(task)
+  +validerTache(task)
+  +selectionnerTacheActive(task)
+  +modifierProfil(name, email, ...)
+  +consulterStatistiques()
+}
+
+class UserConnecte {
+  +sauvegarderCycle(cycle)
+  +modifierCycle(cycle, ...)
+  +supprimerCycle(cycle)
+  +dupliquerCycle(cycle)
+  +afficherHistorique()
+  +synchroniserDonnees()
+}
+
+class PomodoroTimer {
+  +demarrer(task, cycle)
+  +pause()
+  +arreter()
+  +reinitialiser()
+  +passerPeriodeSuivante()
+  +obtenirTempsRestant(): int
+}
+
+class Task {
+  +estimerTemps(pomodoros): int
+  +marquerTerminee()
+  +marquerActive()
+  +marquerSupprimee()
+  +modifier(title, description, ...)
+}
+
+
+class Cycle {
+  +afficherTous(): List<Cycle>
+  +selectionner()
+  +sauvegarder()
+  +modifier(name, periods)
+  +supprimer()
+  +dupliquer(): Cycle
+  +ajouterPeriode(period)
+  +obtenirDureeTotal(): int
+}
+
+class Period {
+  +modifier(time)
+  +obtenirDuree(): int
+}
+
+
+class Parameters {
+  +activerNotifications()
+  +desactiverNotifications()
+  +activerModeNePasDeranger()
+  +desactiverModeNePasDeranger()
+  +changerStyle(style)
+  +changerSonAlarme(son)
+  +modifierParametres(...)
+}
+
+class History {
+  +enregistrerSession(timer, task)
+  +consulterNbTachesFinies(): int
+  +consulterTempsTravail(): int
+  +consulterTempsPause(): int
+  +consulterHistoriqueTaches(): List
+  +genererRapport(): Report
+}
+
+class NotificationService {
+  +notifierDebutPeriode(period)
+  +notifierFinPeriode(period)
+  +notifierPause()
+  +jouerSonAlarme()
+  +afficherNotification(message)
+}
+
+' ===========================
+' Relations
+' ===========================
+
+UserConnecte --|> User
+
+User "1" -- "1" Parameters : possede
+User "1" -- "0..*" Task : gere
+User "1" -- "0..*" Cycle : configure
+User "1" -- "0..*" History : possede
+User "1" ..> PomodoroTimer : utilise
+
+PomodoroTimer "1" -- "0..1" Task : execute
+PomodoroTimer "1" -- "1" Cycle : suit
+PomodoroTimer "1" -- "1" Period : enCours
+PomodoroTimer ..> History : enregistre
+PomodoroTimer ..> NotificationService : notifie
+
+Cycle "1" *-- "1..*" Period : contient
+
+
+
+History "1" -- "0..1" Task : reference
+History "1" -- "1" Cycle : reference
+
+Parameters ..> NotificationService : configure
+Parameters ..> PomodoroTimer : parametre
+
+@enduml
