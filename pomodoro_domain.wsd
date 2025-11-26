@@ -1,74 +1,48 @@
 @startuml pomodoro_domain
 left to right direction
 
-class Utilisateur {
-  +id : int
+class User {
   +email : string
-  +nom : string
-  +motDePasseHash : string
+  +name : string
+  +password : string
 }
 
-class ParametresUtilisateur {
-  +id : int
-  +autostartPomodoro : bool
-  +autostartPause : bool
-  +autoRestartCycles : bool
-  +notificationsActives : bool
-  +rappelsActifs : bool
-  +intervalleRappelMinutes : int
+class Parameters {
+  +autostartWork : bool
+  +autostartRest : bool
+  +autoRestartCycle : bool
+  +notificationsOn : bool
 }
 
-class Tache {
-  +id : int
-  +titre : string
+class Task {
+  +title : string
   +description : string
-  +estimationMinutes : int
-  +statut : StatutTache
-  +dateCreation : DateTime
-  +dateFin : DateTime
+  +estimatedTime : int
+  +status : TaskStatus
+  +creationDate : DateTime
+  +endDate : DateTime
 }
 
-
-class TemplatePomodoro {
-  +id : int
-  +nom : string
-  +description : string
-  +estParDefaut : bool
+class History {
+  +workTime: int
+  +restTime: int
+}
+class Cycle {
+  +name : string
 }
 
-class PeriodeTemplate {
-  +id : int
-  +type : TypePeriode
-  +dureeMinutes : int
-}
-
-class SessionPomodoro {
-  +id : int
-  +dateDebut : DateTime
-  +dateFin : DateTime
-}
-
-class PeriodeSession {
-  +id : int
-  +dureePrevueMinutes : int
-  +dureeReelleMinutes : int
-  +etat : EtatPeriode
+class Period {
+  +type : PeriodType
+  +time : int
 }
 
 ' Relations
 
-Utilisateur "1" -- "1" ParametresUtilisateur
+User "1" -- "1" Parameters
 
-Utilisateur "1" -- "0..*" Tache
-Utilisateur "1" -- "0..*" TemplatePomodoro
-Utilisateur "1" -- "0..*" SessionPomodoro
-
-TemplatePomodoro "1" *-- "1..*" PeriodeTemplate
-
-Tache "0..1" -- "0..*" SessionPomodoro : "tâche active"
-
-SessionPomodoro "1" *-- "1..*" PeriodeSession
-
-SessionPomodoro "0..1" -- "1" TemplatePomodoro : "utilise"
+User "1" -- "0..*" Task
+User "1" -- "0..*" Cycle
+User "1" -- "0..*" History
+Cycle "1" -- "1..*" Period
 
 @enduml
