@@ -1,0 +1,46 @@
+@startuml
+actor User
+participant Application
+participant Serveur
+
+alt L'utilisateur choisi de sélectionner un cycle
+
+== Connexion (si pas connecté) ==
+
+    User -> Application : 1. Cliquer sur le bouton de connexion
+    activate Application
+    Application --> User : 1.1 Affichage du menu de connexion
+    deactivate Application
+
+    User -> Application : 2. Authentification
+    activate Application
+    Application -> Serveur : 2.1 Vérification
+    activate Serveur
+    Serveur --> Application : 2.3 Confirmation de l'auth
+    deactivate Serveur
+    Application --> User : 2.4 Connexion
+    deactivate Application
+
+
+== Sélection du cycle ==
+
+User -> Application : 3. Click sur le bouton de sélection de cycle
+activate Application
+Application --> User : 3.1 Affichage des cycles disponibles
+deactivate Application
+
+User -> Application : 4. Click sur le cycle choisi
+activate Application
+Application --> User : 4.2 Affichage du cycle
+deactivate Application
+
+end
+
+
+User -> Application : 5. Cliquer sur le bouton Start
+activate Application
+Application --> User : 5.1 Lancement des timers
+deactivate Application
+Application --> Serveur : 5.2 Commencement de la session
+
+@enduml
