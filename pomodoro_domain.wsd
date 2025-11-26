@@ -38,6 +38,7 @@ class TemplatePomodoro {
 
 class PeriodeTemplate {
   +id : int
+  +ordre : int
   +type : TypePeriode
   +dureeMinutes : int
 }
@@ -50,6 +51,7 @@ class SessionPomodoro {
 
 class PeriodeSession {
   +id : int
+
   +dureePrevueMinutes : int
   +dureeReelleMinutes : int
   +etat : EtatPeriode
