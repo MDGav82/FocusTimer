@@ -28,7 +28,6 @@ rectangle "Application Pomodoro" {
   usecase "Consulter\nl'historique des\ntâches et leur\ntemps dédié" as UC20 #FFA500
   usecase "Activer les\nnotifications" as UC21 #FFA500
   usecase "Mode ne pas\ndéranger" as UC22 #FFA500
-  usecase "Activer le\nmode offline" as UC23 #FFA500
   usecase "Sélectionner le\nstyle de\nl'application" as UC24 #DDA0DD
   usecase "Personnalisation\ndes sons\nd'alarmes" as UC25 #DDA0DD
   
@@ -56,7 +55,6 @@ uc --> UC17
 uc --> UC21
 uc --> UC25
 uc --> UC22
-uc --> UC23
 uc --> UC24
 
 ' Relations extends
