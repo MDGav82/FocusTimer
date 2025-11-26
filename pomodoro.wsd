@@ -10,6 +10,7 @@ rectangle "Application Pomodoro" {
   usecase "Pause" as UC2 #FF6B6B
   usecase "Arrêter le\ntimer" as UC3 #FF6B6B
   usecase "Réinitialiser\nle timer" as UC4 #87CEEB
+  usecase "Passer à la \nperiode suivante" as UC26 #87CEEB
   usecase "Sélectionner\nun template" as UC5 #87CEEB
   usecase "Ajouter\nune tâche" as UC6 #87CEEB
   usecase "Estimer le\ntemps" as UC7 #87CEEB
@@ -62,6 +63,7 @@ UC1 ..> UC2 : <<Extends>>
 UC1 ..> UC3 : <<Extends>>
 UC1 ..> UC4 : <<Extends>>
 UC1 ..> UC5 : <<Extends>>
+UC1 ..> UC26 : <<Extends>>
 UC6 <.. UC7 : <<Extends>>
 
 @enduml
