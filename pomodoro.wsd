@@ -1,0 +1,67 @@
+@startuml pomodoro
+left to right direction
+actor User as u
+actor "User connecté" as uc
+
+uc --|> u
+
+rectangle "Application Pomodoro" {
+  usecase "Démarrer\nle timer" as UC1
+  usecase "Pause" as UC2
+  usecase "Arrêter le\ntimer" as UC3
+  usecase "Réinitialiser\nle timer" as UC4
+  usecase "Sélectionner\nun template" as UC5
+  usecase "Ajouter\nune tâche" as UC6
+  usecase "Estimer le\ntemps" as UC7
+  usecase "Afficher les\ntemplates" as UC8
+  usecase "Sélectionner\nla tâche\nactive" as UC9
+  usecase "Supprimer\nune tâche" as UC10
+  usecase "Valider une\ntâche" as UC11
+  usecase "Sauvegarder\nun template" as UC12
+  usecase "Modifier\nun\ntemplate" as UC13
+  usecase "Supprimer\nun\ntemplate" as UC14
+  usecase "Dupliquer un\ntemplate" as UC15
+  usecase "Consulter Nombre\nde tâches finies" as UC16
+  usecase "Consulter temps\nde travail & pause" as UC17
+  usecase "Consulter\nl'historique des\ntâches et leur\ntemps dédié" as UC18
+  usecase "Modifier profil" as UC19
+  usecase "Activer les\nnotifications" as UC20
+  usecase "Personnalisation\ndes sons\nd'alarmes" as UC21
+  usecase "Mode ne pas\ndéranger" as UC22
+  usecase "Activer le\nmode offline" as UC23
+  usecase "Sélectionner le\nstyle de\nl'application" as UC24
+  
+}
+
+' User connections
+u --> UC1
+u --> UC5
+u --> UC6
+u --> UC8
+u --> UC9
+u --> UC10
+u --> UC11
+
+' User connecté connections
+uc --> UC12
+uc --> UC13
+uc --> UC14
+uc --> UC15
+uc --> UC16
+uc --> UC17
+uc --> UC18
+uc --> UC19
+uc --> UC20
+uc --> UC21
+uc --> UC22
+uc --> UC23
+uc --> UC24
+
+' Relations extends
+UC1 ..> UC2 : <<Extends>>
+UC1 ..> UC3 : <<Extends>>
+UC1 ..> UC4 : <<Extends>>
+UC1 ..> UC5 : <<Extends>>
+UC6 <.. UC7 : <<Extends>>
+
+@enduml
