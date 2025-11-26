@@ -1,0 +1,18 @@
+@startuml template
+left to right direction
+actor User as u
+
+rectangle Application {
+usecase "Sélectionner\nun template" as UC1
+usecase "Sauvegarder\nun template" as UC2
+usecase "Modifier\nun\ntemplate" as UC3
+usecase "Supprimer\nun\ntemplate" as UC4
+
+}
+
+u -- UC1
+u -- UC2
+u -- UC3
+u -- UC4
+
+@enduml

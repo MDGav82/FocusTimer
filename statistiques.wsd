@@ -1,0 +1,15 @@
+@startuml statistiques
+left to right direction
+actor :User connecté: as u
+
+rectangle "Consulter les statistiques" {
+usecase "Consulter Nombre\nde tâches finies" as UC1
+usecase "Consulter temps\nde travail & pause" as UC2
+usecase "Consulter\nl'historique des\ntâches et leur\ntemps dédié" as UC3
+}
+
+u -- UC1 
+u -- UC2 
+u -- UC3 
+
+@enduml

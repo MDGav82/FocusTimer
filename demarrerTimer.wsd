@@ -1,0 +1,31 @@
+@startuml startTimer
+left to right direction
+actor :User connecté: as uc
+actor User as u
+
+rectangle "Démarrer une session pomodoro" {
+usecase "Choisir un\ntemplate" as UC1
+usecase "Démarrer\nle\ntimer/session" as UC2
+usecase "Pause" as UC3
+usecase "Arrêter le\ntimer" as UC4
+usecase "Réinitialiser\nle timer" as UC5
+
+note left of UC1
+Templates
+du user
+end note
+
+note left of UC1
+Par défaut
+end note
+}
+
+uc --> UC1
+u --> UC2
+
+UC2 --> UC1 : <<Extends>>
+UC2 ..> UC3 : <<Extends>>
+UC2 ..> UC4 : <<Extends>>
+UC2 ..> UC5 : <<Extends>>
+
+@enduml

@@ -1,0 +1,20 @@
+@startuml todolist
+left to right direction
+actor User as u
+
+rectangle "Etablir sa todolist" {
+usecase "Ajouter\nune tâche" as UC1
+usecase "Estimer le\ntemps" as UC2
+usecase "Sélectionner\nla tâche\nactive" as UC3
+usecase "Supprimer\nune tâche" as UC4
+usecase "Valider une\ntâche" as UC5
+}
+
+u -- UC1
+u -- UC3
+u -- UC4
+u -- UC5
+
+UC2 ..> UC1 : <<Extends>>
+
+@enduml
