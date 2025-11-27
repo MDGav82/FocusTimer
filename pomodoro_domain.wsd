@@ -2,12 +2,14 @@
 left to right direction
 
 class User {
+  +id : int
   +email : string
   +name : string
   +password : string
 }
 
 class Parameters {
+  +id : int
   +autostartWork : bool
   +autostartRest : bool
   +autoRestartCycle : bool
@@ -15,34 +17,46 @@ class Parameters {
 }
 
 class Task {
+  +id : int
   +title : string
   +description : string
   +estimatedTime : int
   +status : TaskStatus
+  +completion : int
   +creationDate : DateTime
+  +startDate : DateTime
   +endDate : DateTime
 }
 
 class History {
-  +workTime: int
-  +restTime: int
+  +id : int
+  +workTime: long
+  +restTime: long
 }
 class Cycle {
+  +id : int
   +name : string
 }
 
 class Period {
+  +id : int
   +type : PeriodType
   +time : int
+  +order : int
+}
+
+class Status {
+   +id : int
+  +name : string
 }
 
 ' Relations
 
 User "1" -- "1" Parameters
-
 User "1" -- "0..*" Task
 User "1" -- "0..*" Cycle
-User "1" -- "0..*" History
+User "1" -- "1" History
 Cycle "1" -- "1..*" Period
+Task "0..*" -- "1" Status
 
 @enduml

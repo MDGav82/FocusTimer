@@ -1,0 +1,36 @@
+@startuml user_case_todolist
+actor User
+participant "Application" as App
+participant "Serveur" as Server
+
+== Ajouter une tâche ==
+User -> App : Ajouter une nouvelle tâche
+App -> Server : AddTask(title, description, temps estimé)
+Server --> App : Tâche créée (id)
+App --> User : Confirmation ajout
+
+== Sélectionner une tâche ==
+User -> App : Sélectionner tâche(id)
+App -> Server : Statut de la tâche : "active"
+Server --> App : Statut de tâche changé
+App --> User : Temps de la tâche active incrémenté
+
+== Supprimer une tâche ==
+User -> App : Demander suppression tâche(id)
+App -> Server : 
+Server --> App : Confirmation suppression
+App --> User : Tâche supprimée
+
+== Modifier une tâche ==
+User -> App : Modifier tâche(id, nouvelles infos)
+App -> Server : 
+Server --> App : Tâche mise à jour
+App --> User : Modification confirmée
+
+== Valider une tâche ==
+User -> App : Marquer tâche comme terminée(id)
+App -> Server : 
+Server --> App : Tâche validée
+App --> User : Tâche complétée
+
+@enduml
