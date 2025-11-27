@@ -29,18 +29,22 @@ class Task {
 
 class History {
   +id : int
-  +workTime: long
-  +restTime: long
   +startTime: DateTime
+  +timeSpent: int
 }
+
 class Cycle {
   +id : int
   +name : string
 }
 
+class TypePeriode {
+    id: int
+    name: string
+}
+
 class Period {
   +id : int
-  +type : bool
   +time : int
   +index : int
 }
@@ -55,8 +59,10 @@ class Status {
 User "1" -- "1" Parameters
 User "1" -- "0..*" Task
 User "1" -- "0..*" Cycle
-User "1" -- "1" History
+User "1" -- "0..*" History
 Cycle "1" -- "1..*" Period
+Period "0..*" -- "1" TypePeriode
+History "0..*" -- "1" TypePeriode
 Task "0..*" -- "1" Status
 
 @enduml
