@@ -23,7 +23,7 @@ class Task {
   +progress : int
   +creationDate : DateTime
   +startDate : DateTime
-  +timeSpent : float
+  +timeSpent : int
   +endDate : DateTime
 }
 
