@@ -5,7 +5,6 @@ class User {
   +id : int
   +email : string
   +password : string
-  +premiumAcc : bool
 }
 
 class Parameters {
