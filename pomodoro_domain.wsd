@@ -4,8 +4,8 @@ left to right direction
 class User {
   +id : int
   +email : string
-  +name : string
   +password : string
+  +premiumAcc : bool
 }
 
 class Parameters {
@@ -21,10 +21,10 @@ class Task {
   +title : string
   +description : string
   +estimatedTime : int
-  +status : TaskStatus
-  +completion : int
+  +progress : int
   +creationDate : DateTime
   +startDate : DateTime
+  +timeSpent : float
   +endDate : DateTime
 }
 
@@ -32,6 +32,7 @@ class History {
   +id : int
   +workTime: long
   +restTime: long
+  +startTime: DateTime
 }
 class Cycle {
   +id : int
@@ -40,9 +41,9 @@ class Cycle {
 
 class Period {
   +id : int
-  +type : PeriodType
+  +type : bool
   +time : int
-  +order : int
+  +index : int
 }
 
 class Status {
