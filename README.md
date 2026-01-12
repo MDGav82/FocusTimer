@@ -1,3 +1,4 @@
 # FocusTimer
 
-Pomodoro management app goes crazy
+Install extension "plantUML"
+To view schemas press Alt+D

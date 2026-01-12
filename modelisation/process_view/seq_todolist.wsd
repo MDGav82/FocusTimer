@@ -1,4 +1,4 @@
-@startuml user_case_todolist
+@startuml seq_todolist
 actor User
 participant "Application" as App
 participant "Serveur" as Server
