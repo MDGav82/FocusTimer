@@ -1,12 +1,21 @@
-# FocusTimer
+# bun-react-tailwind-template
 
-Install extension "plantUML"
-To view schemas press Alt+D
+To install dependencies:
 
-# Legend
+```bash
+bun install
+```
 
-The use case schema use code colors according the MOSCOW method,
-M: must have this #FF6B6B
-S: should have this if at all possible #87CEEB
-C: could have this if it does not affect anything else #FFA500
-W: won't have this time but would like in the future #DDA0DD
+To start a development server:
+
+```bash
+bun dev
+```
+
+To run for production:
+
+```bash
+bun start
+```
+
+This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
