@@ -19,3 +19,14 @@ bun start
 ```
 
 This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+
+# Run with docker
+
+# Build : 
+docker-compose up --build -d
+
+# Start 
+docker-compose up -d
+
+# Stop
+docker compose down
