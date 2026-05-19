@@ -7,10 +7,21 @@
 
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Check to avoid multiple calls
+let hasStarted = false;
 
 function start() {
+  if (hasStarted) return;
+  hasStarted = true;
   const root = createRoot(document.getElementById("root")!);
-  root.render(<App />);
+  root.render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />}/>
+    </Routes>
+  </BrowserRouter>);
 }
 
 if (document.readyState === "loading") {
