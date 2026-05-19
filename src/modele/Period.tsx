@@ -1,6 +1,6 @@
 import type { TypePeriode } from './TypePeriode';
 
-export interface Period {
+export type Period = {
   id: number;
   time: number;
   index: number;

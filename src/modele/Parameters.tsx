@@ -1,4 +1,4 @@
-export interface Parameters {
+export type Parameters = {
   id: number;
   autoStartWork: boolean;
   autoStartRest: boolean;

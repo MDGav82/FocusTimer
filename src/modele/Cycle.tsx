@@ -1,6 +1,6 @@
 import type { Period } from './Period';
 
-export interface Cycle {
+export type Cycle = {
   id: number;
   name: string;
   periods: Period[];

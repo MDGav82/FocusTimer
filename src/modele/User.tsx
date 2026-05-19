@@ -3,7 +3,7 @@ import type { Task } from './Task';
 import type { Cycle } from './Cycle';
 import type { History } from './History';
 
-export interface User {
+export type User = {
   id: number;
   email: string;
   password?: string;
