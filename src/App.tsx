@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
-import { LandingPage } from "./app/landing/LandingPage";
 import NavBar from "./app/NavBar";
-import "./index.css";
+import "./styles/globals.css";
 
 /**
  * Layout component fot the app, 

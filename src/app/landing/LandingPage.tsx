@@ -118,8 +118,8 @@ export function LandingPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">
-      {/* 1. SECTION TIMER */}
-      <section>
+      {/* MARK: Timer 
+      */}
         <Timer 
           currentPeriod={currentPeriod} 
           onNext={nextPeriod} 
@@ -128,19 +128,15 @@ export function LandingPage() {
           elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
           onTick={handleTick}
         />
-      </section>
-
-      {/* 2. SECTION CONFIGURATION DU CYCLE */}
-      <section>
+      {/* MARK: Cycle 
+      */}
         <Cycle 
           currentCycleName={currentCycleName}
           periods={periods}
           currentPeriodIndex={currentPeriodIndex}
         />
-      </section>
-
-      {/* 3. SECTION LISTE DES TÂCHES */}
-      <section>
+      {/* MARK: Tasks 
+      */}
         <Tasks 
           tasks={tasks} 
           selectedTaskId={selectedTaskId}
@@ -150,7 +146,6 @@ export function LandingPage() {
           onDeleteAll={handleDeleteAll}
           onToggleComplete={handleToggleComplete}
         />
-      </section>
     </div>
   );
 }
