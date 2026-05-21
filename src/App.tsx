@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
-
+import { LandingPage } from "./app/landing/LandingPage";
 import NavBar from "./app/NavBar";
+import "./index.css";
 
 /**
  * Layout component fot the app, 
@@ -8,8 +9,7 @@ import NavBar from "./app/NavBar";
  */
 export function App() {
   return (
-    <div className="max-w-7xl mx-auto p-8 text-center relative z-10">
-      <h1>FocusTimer</h1>
+    <div className="min-h-screen bg-slate-900 text-slate-100 antialiased font-sans">
       <NavBar/>
       <Outlet/>
     </div>
