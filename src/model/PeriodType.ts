@@ -1,1 +1,1 @@
-export enum PeriodType { WORK, PAUSE }
+export enum PeriodType { WORK, BREAK }
