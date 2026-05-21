@@ -20,7 +20,6 @@ export class Task implements StorableInstance {
         public title: string,
         public description: string,
         public estimatedTime: number,
-        public progress: number,
         public creationDate: Date,
         public startDate: Date,
         public timeSpent: number,
