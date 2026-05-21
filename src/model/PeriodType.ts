@@ -1,0 +1,1 @@
+export enum PeriodType { WORK, BREAK }
