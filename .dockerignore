@@ -5,3 +5,5 @@ out
 .gitignore
 *.md
 .env*
+modelisation/
+build.ts

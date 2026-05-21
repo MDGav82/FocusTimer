@@ -30,3 +30,6 @@ docker-compose up -d
 
 # Stop
 docker compose down
+
+# Connect to database 
+docker exec -it focustimer-postgres-1 psql -U POSTGRES_USER -d POSTGRES_DB

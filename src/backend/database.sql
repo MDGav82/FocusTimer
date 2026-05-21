@@ -59,6 +59,8 @@ CREATE TABLE history (
   id              SERIAL PRIMARY KEY,
   user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type_periode_id INTEGER NOT NULL REFERENCES type_periode(id),
+  task_id         INTEGER REFERENCES task(id) ON DELETE SET NULL,
+  cycle_id        INTEGER NOT NULL REFERENCES cycle(id),
   start_date      TIMESTAMP NOT NULL DEFAULT NOW(),
   time_spent      INTEGER NOT NULL DEFAULT 0
 );
