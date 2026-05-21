@@ -1,19 +1,23 @@
-FROM oven/bun:1.2 AS deps
+FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.2 AS runner
+FROM oven/bun:1.3 AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bunfig.toml tsconfig.json bun-env.d.ts ./
+COPY src/ ./src/
+RUN bun build --compile --minify src/index.ts --outfile=/app/focustimer
+
+FROM debian:bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock bunfig.toml ./
-COPY src/ ./src/
-COPY tsconfig.json bun-env.d.ts ./
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+COPY --from=builder /app/focustimer ./focustimer
+RUN chown appuser:appuser ./focustimer
 
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
-
 EXPOSE 3000
-CMD ["bun", "src/index.ts"]
+CMD ["./focustimer"]
