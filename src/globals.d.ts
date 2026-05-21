@@ -3,3 +3,7 @@ declare module "*.css" {
   const content: string;
   export default content;
 }
+declare module "@/lib/globals" {
+  const content: string;
+  export default content;
+}

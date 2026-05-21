@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Period {
   name: string;
@@ -21,9 +23,24 @@ export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CyclePr
           </span>
           <h3 className="text-lg font-bold text-slate-100 mt-1">{currentCycleName}</h3>
         </div>
-        <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">
-          Sélectionner un cycle
-        </button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">Sélectionner un cycle</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sélectionner un cycle</DialogTitle>
+              <DialogDescription>
+                Choisissez le cycle de travail que vous souhaitez utiliser.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Fermer</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       
       <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/30 space-y-3">
