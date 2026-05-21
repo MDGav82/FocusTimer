@@ -1,16 +1,11 @@
+import { Elysia } from "elysia";
 import { db } from "../db";
+import { requireAuth } from "../plugins/auth";
 
-type PeriodInput = {
-  type_periode_id: number;
-  time: number;
-  index: number;
-};
+type PeriodInput = { type_periode_id: number; time: number; index: number };
 
 async function getCycleWithPeriods(cycleId: number | string) {
-  const [cycle] = await db`
-    SELECT id, user_id, name FROM cycle WHERE id = ${cycleId}
-  `;
-
+  const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${cycleId}`;
   if (!cycle) return null;
 
   const periods = await db`
@@ -20,246 +15,176 @@ async function getCycleWithPeriods(cycleId: number | string) {
     WHERE p.cycle_id = ${cycleId}
     ORDER BY p.index ASC
   `;
-
   return { ...cycle, periods };
 }
 
-export const cycleRoutes = {
-  "/api/users/:userId/cycles": {
-    async GET(req: Request & { params: { userId: string } }) {
-      try {
-        const { userId } = req.params;
+export const cycleRoutes = new Elysia()
+  .use(requireAuth)
 
-        const cycles = await db`
-          SELECT id, name FROM cycle WHERE user_id = ${userId} ORDER BY id ASC
-        `;
+  .get("/api/users/:userId/cycles", async ({ params: { userId }, set }) => {
+    try {
+      const cycles = await db`
+        SELECT id, name FROM cycle WHERE user_id = ${userId} ORDER BY id ASC
+      `;
+      return await Promise.all(cycles.map((c: { id: number }) => getCycleWithPeriods(c.id)));
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        const results = await Promise.all(
-          cycles.map((c: { id: number }) => getCycleWithPeriods(c.id))
-        );
-
-        return Response.json(results);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async POST(req: Request & { params: { userId: string } }) {
-      try {
-        const { userId } = req.params;
-        const { name, periods } = await req.json();
-
-        if (!name) {
-          return Response.json({ error: "Name is required" }, { status: 400 });
-        }
-
-        const [cycle] = await db`
-          INSERT INTO cycle (user_id, name) VALUES (${userId}, ${name}) RETURNING id, name
-        `;
-
-        if (Array.isArray(periods) && periods.length > 0) {
-          for (const p of periods as PeriodInput[]) {
-            await db`
-              INSERT INTO period (cycle_id, type_periode_id, time, index)
-              VALUES (${cycle.id}, ${p.type_periode_id}, ${p.time}, ${p.index})
-            `;
-          }
-        }
-
-        const result = await getCycleWithPeriods(cycle.id);
-        return Response.json(result, { status: 201 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
-
-  "/api/cycles/:id": {
-    async GET(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-        const cycle = await getCycleWithPeriods(id);
-
-        if (!cycle) {
-          return Response.json({ error: "Cycle not found" }, { status: 404 });
-        }
-
-        return Response.json(cycle);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async PUT(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-        const { name, periods } = await req.json();
-
-        if (name !== undefined) {
-          const [updated] = await db`
-            UPDATE cycle SET name = ${name} WHERE id = ${id} RETURNING id
+  .post("/api/users/:userId/cycles", async ({ params: { userId }, body, set }) => {
+    const { name, periods } = body as any;
+    if (!name) { set.status = 400; return { error: "Name is required" }; }
+    try {
+      const [cycle] = await db`
+        INSERT INTO cycle (user_id, name) VALUES (${userId}, ${name}) RETURNING id, name
+      `;
+      if (Array.isArray(periods) && periods.length > 0) {
+        for (const p of periods as PeriodInput[]) {
+          await db`
+            INSERT INTO period (cycle_id, type_periode_id, time, index)
+            VALUES (${cycle.id}, ${p.type_periode_id}, ${p.time}, ${p.index})
           `;
-          if (!updated) {
-            return Response.json({ error: "Cycle not found" }, { status: 404 });
-          }
         }
-
-        if (Array.isArray(periods)) {
-          await db`DELETE FROM period WHERE cycle_id = ${id}`;
-          for (const p of periods as PeriodInput[]) {
-            await db`
-              INSERT INTO period (cycle_id, type_periode_id, time, index)
-              VALUES (${id}, ${p.type_periode_id}, ${p.time}, ${p.index})
-            `;
-          }
-        }
-
-        const result = await getCycleWithPeriods(id);
-        if (!result) {
-          return Response.json({ error: "Cycle not found" }, { status: 404 });
-        }
-
-        return Response.json(result);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
       }
-    },
+      set.status = 201;
+      return await getCycleWithPeriods(cycle.id);
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-    async DELETE(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
+  .get("/api/cycles/:id", async ({ params: { id }, set }) => {
+    try {
+      const cycle = await getCycleWithPeriods(id);
+      if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
+      return cycle;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        const [deleted] = await db`
-          DELETE FROM cycle WHERE id = ${id} RETURNING id
+  .put("/api/cycles/:id", async ({ params: { id }, body, set }) => {
+    const { name, periods } = body as any;
+    try {
+      if (name !== undefined) {
+        const [updated] = await db`
+          UPDATE cycle SET name = ${name} WHERE id = ${id} RETURNING id
         `;
-
-        if (!deleted) {
-          return Response.json({ error: "Cycle not found" }, { status: 404 });
-        }
-
-        return new Response(null, { status: 204 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
+        if (!updated) { set.status = 404; return { error: "Cycle not found" }; }
       }
-    },
-  },
-
-  "/api/cycles/:cycleId/periods": {
-    async GET(req: Request & { params: { cycleId: string } }) {
-      try {
-        const { cycleId } = req.params;
-
-        const [cycle] = await db`SELECT id FROM cycle WHERE id = ${cycleId}`;
-        if (!cycle) {
-          return Response.json({ error: "Cycle not found" }, { status: 404 });
+      if (Array.isArray(periods)) {
+        await db`DELETE FROM period WHERE cycle_id = ${id}`;
+        for (const p of periods as PeriodInput[]) {
+          await db`
+            INSERT INTO period (cycle_id, type_periode_id, time, index)
+            VALUES (${id}, ${p.type_periode_id}, ${p.time}, ${p.index})
+          `;
         }
-
-        const periods = await db`
-          SELECT p.id, p.time, p.index, p.type_periode_id, tp.name AS type_name
-          FROM period p
-          JOIN type_periode tp ON tp.id = p.type_periode_id
-          WHERE p.cycle_id = ${cycleId}
-          ORDER BY p.index ASC
-        `;
-
-        return Response.json(periods);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
       }
-    },
+      const result = await getCycleWithPeriods(id);
+      if (!result) { set.status = 404; return { error: "Cycle not found" }; }
+      return result;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-    async POST(req: Request & { params: { cycleId: string } }) {
-      try {
-        const { cycleId } = req.params;
-        const { type_periode_id, time, index } = await req.json();
+  .delete("/api/cycles/:id", async ({ params: { id }, set }) => {
+    try {
+      const [deleted] = await db`DELETE FROM cycle WHERE id = ${id} RETURNING id`;
+      if (!deleted) { set.status = 404; return { error: "Cycle not found" }; }
+      set.status = 204;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        if (type_periode_id === undefined || time === undefined || index === undefined) {
-          return Response.json(
-            { error: "type_periode_id, time and index are required" },
-            { status: 400 }
-          );
-        }
+  .get("/api/cycles/:cycleId/periods", async ({ params: { cycleId }, set }) => {
+    try {
+      const [cycle] = await db`SELECT id FROM cycle WHERE id = ${cycleId}`;
+      if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
+      return await db`
+        SELECT p.id, p.time, p.index, p.type_periode_id, tp.name AS type_name
+        FROM period p
+        JOIN type_periode tp ON tp.id = p.type_periode_id
+        WHERE p.cycle_id = ${cycleId}
+        ORDER BY p.index ASC
+      `;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        const [period] = await db`
-          INSERT INTO period (cycle_id, type_periode_id, time, index)
-          VALUES (${cycleId}, ${type_periode_id}, ${time}, ${index})
-          RETURNING *
-        `;
+  .post("/api/cycles/:cycleId/periods", async ({ params: { cycleId }, body, set }) => {
+    const { type_periode_id, time, index } = body as any;
+    if (type_periode_id === undefined || time === undefined || index === undefined) {
+      set.status = 400;
+      return { error: "type_periode_id, time and index are required" };
+    }
+    try {
+      const [period] = await db`
+        INSERT INTO period (cycle_id, type_periode_id, time, index)
+        VALUES (${cycleId}, ${type_periode_id}, ${time}, ${index})
+        RETURNING *
+      `;
+      set.status = 201;
+      return period;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        return Response.json(period, { status: 201 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
+  .get("/api/periods/:id", async ({ params: { id }, set }) => {
+    try {
+      const [period] = await db`
+        SELECT p.id, p.cycle_id, p.time, p.index, p.type_periode_id, tp.name AS type_name
+        FROM period p
+        JOIN type_periode tp ON tp.id = p.type_periode_id
+        WHERE p.id = ${id}
+      `;
+      if (!period) { set.status = 404; return { error: "Period not found" }; }
+      return period;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-  "/api/periods/:id": {
-    async GET(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
+  .put("/api/periods/:id", async ({ params: { id }, body, set }) => {
+    const { type_periode_id, time, index } = body as any;
+    try {
+      const [period] = await db`
+        UPDATE period
+        SET
+          type_periode_id = COALESCE(${type_periode_id ?? null}, type_periode_id),
+          time            = COALESCE(${time ?? null}, time),
+          index           = COALESCE(${index ?? null}, index)
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      if (!period) { set.status = 404; return { error: "Period not found" }; }
+      return period;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        const [period] = await db`
-          SELECT p.id, p.cycle_id, p.time, p.index, p.type_periode_id, tp.name AS type_name
-          FROM period p
-          JOIN type_periode tp ON tp.id = p.type_periode_id
-          WHERE p.id = ${id}
-        `;
-
-        if (!period) {
-          return Response.json({ error: "Period not found" }, { status: 404 });
-        }
-
-        return Response.json(period);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async PUT(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-        const body = await req.json();
-
-        const typePeriodeId = body.type_periode_id ?? null;
-        const time = body.time ?? null;
-        const index = body.index ?? null;
-
-        const [period] = await db`
-          UPDATE period
-          SET
-            type_periode_id = COALESCE(${typePeriodeId}, type_periode_id),
-            time            = COALESCE(${time}, time),
-            index           = COALESCE(${index}, index)
-          WHERE id = ${id}
-          RETURNING *
-        `;
-
-        if (!period) {
-          return Response.json({ error: "Period not found" }, { status: 404 });
-        }
-
-        return Response.json(period);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async DELETE(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-
-        const [deleted] = await db`
-          DELETE FROM period WHERE id = ${id} RETURNING id
-        `;
-
-        if (!deleted) {
-          return Response.json({ error: "Period not found" }, { status: 404 });
-        }
-
-        return new Response(null, { status: 204 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
-};
+  .delete("/api/periods/:id", async ({ params: { id }, set }) => {
+    try {
+      const [deleted] = await db`DELETE FROM period WHERE id = ${id} RETURNING id`;
+      if (!deleted) { set.status = 404; return { error: "Period not found" }; }
+      set.status = 204;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  });

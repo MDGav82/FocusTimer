@@ -26,17 +26,16 @@ This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) 
 ```bash 
 docker-compose up --build -d
 ```
-
+Start 
 ```bash 
-# Start 
 docker-compose up -d
 ```
+Stop
 ```bash 
-# Stop
 docker compose down
 ```
+Connect to database 
 ```bash 
-# Connect to database 
 docker exec -it focustimer-postgres-1 psql -U POSTGRES_USER -d POSTGRES_DB
 ```
 

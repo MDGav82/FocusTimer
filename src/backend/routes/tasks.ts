@@ -1,131 +1,99 @@
+import { Elysia } from "elysia";
 import { db } from "../db";
+import { requireAuth } from "../plugins/auth";
 
-export const taskRoutes = {
-  "/api/users/:userId/tasks": {
-    async GET(req: Request & { params: { userId: string } }) {
-      try {
-        const { userId } = req.params;
+export const taskRoutes = new Elysia()
+  .use(requireAuth)
 
-        const tasks = await db`
-          SELECT t.*, s.name AS status_name
-          FROM task t
-          JOIN status s ON s.id = t.status_id
-          WHERE t.user_id = ${userId}
-          ORDER BY t.creation_date DESC
-        `;
+  .get("/api/users/:userId/tasks", async ({ params: { userId }, set }) => {
+    try {
+      return await db`
+        SELECT t.*, s.name AS status_name
+        FROM task t
+        JOIN status s ON s.id = t.status_id
+        WHERE t.user_id = ${userId}
+        ORDER BY t.creation_date DESC
+      `;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        return Response.json(tasks);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
+  .post("/api/users/:userId/tasks", async ({ params: { userId }, body, set }) => {
+    const { title, description, estimated_time } = body as any;
+    if (!title) { set.status = 400; return { error: "Title is required" }; }
+    try {
+      const [task] = await db`
+        INSERT INTO task (user_id, status_id, title, description, estimated_time)
+        VALUES (
+          ${userId},
+          (SELECT id FROM status WHERE name = 'pending'),
+          ${title},
+          ${description ?? null},
+          ${estimated_time ?? 0}
+        )
+        RETURNING *
+      `;
+      set.status = 201;
+      return task;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-    async POST(req: Request & { params: { userId: string } }) {
-      try {
-        const { userId } = req.params;
-        const body = await req.json();
-        const { title, description, estimated_time } = body;
+  .get("/api/tasks/:id", async ({ params: { id }, set }) => {
+    try {
+      const [task] = await db`
+        SELECT t.*, s.name AS status_name
+        FROM task t
+        JOIN status s ON s.id = t.status_id
+        WHERE t.id = ${id}
+      `;
+      if (!task) { set.status = 404; return { error: "Task not found" }; }
+      return task;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        if (!title) {
-          return Response.json({ error: "Title is required" }, { status: 400 });
-        }
+  .put("/api/tasks/:id", async ({ params: { id }, body, set }) => {
+    const {
+      title, description, status_id, estimated_time,
+      progress, time_spent, start_date, end_date,
+    } = body as any;
+    try {
+      const [task] = await db`
+        UPDATE task
+        SET
+          title          = COALESCE(${title ?? null}, title),
+          description    = COALESCE(${description ?? null}, description),
+          status_id      = COALESCE(${status_id ?? null}, status_id),
+          estimated_time = COALESCE(${estimated_time ?? null}, estimated_time),
+          progress       = COALESCE(${progress ?? null}, progress),
+          time_spent     = COALESCE(${time_spent ?? null}, time_spent),
+          start_date     = COALESCE(${start_date ?? null}, start_date),
+          end_date       = COALESCE(${end_date ?? null}, end_date)
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      if (!task) { set.status = 404; return { error: "Task not found" }; }
+      return task;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
 
-        const [task] = await db`
-          INSERT INTO task (user_id, status_id, title, description, estimated_time)
-          VALUES (
-            ${userId},
-            (SELECT id FROM status WHERE name = 'pending'),
-            ${title},
-            ${description ?? null},
-            ${estimated_time ?? 0}
-          )
-          RETURNING *
-        `;
-
-        return Response.json(task, { status: 201 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
-
-  "/api/tasks/:id": {
-    async GET(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-
-        const [task] = await db`
-          SELECT t.*, s.name AS status_name
-          FROM task t
-          JOIN status s ON s.id = t.status_id
-          WHERE t.id = ${id}
-        `;
-
-        if (!task) {
-          return Response.json({ error: "Task not found" }, { status: 404 });
-        }
-
-        return Response.json(task);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async PUT(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-        const body = await req.json();
-
-        const title = body.title ?? null;
-        const description = body.description ?? null;
-        const statusId = body.status_id ?? null;
-        const estimatedTime = body.estimated_time ?? null;
-        const progress = body.progress ?? null;
-        const timeSpent = body.time_spent ?? null;
-        const startDate = body.start_date ?? null;
-        const endDate = body.end_date ?? null;
-
-        const [task] = await db`
-          UPDATE task
-          SET
-            title          = COALESCE(${title}, title),
-            description    = COALESCE(${description}, description),
-            status_id      = COALESCE(${statusId}, status_id),
-            estimated_time = COALESCE(${estimatedTime}, estimated_time),
-            progress       = COALESCE(${progress}, progress),
-            time_spent     = COALESCE(${timeSpent}, time_spent),
-            start_date     = COALESCE(${startDate}, start_date),
-            end_date       = COALESCE(${endDate}, end_date)
-          WHERE id = ${id}
-          RETURNING *
-        `;
-
-        if (!task) {
-          return Response.json({ error: "Task not found" }, { status: 404 });
-        }
-
-        return Response.json(task);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-
-    async DELETE(req: Request & { params: { id: string } }) {
-      try {
-        const { id } = req.params;
-
-        const [deleted] = await db`
-          DELETE FROM task WHERE id = ${id} RETURNING id
-        `;
-
-        if (!deleted) {
-          return Response.json({ error: "Task not found" }, { status: 404 });
-        }
-
-        return new Response(null, { status: 204 });
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
-};
+  .delete("/api/tasks/:id", async ({ params: { id }, set }) => {
+    try {
+      const [deleted] = await db`DELETE FROM task WHERE id = ${id} RETURNING id`;
+      if (!deleted) { set.status = 404; return { error: "Task not found" }; }
+      set.status = 204;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  });

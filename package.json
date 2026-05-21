@@ -9,9 +9,11 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
+    "@elysiajs/jwt": "^1.4.2",
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "elysia": "^1.4.28",
     "lucide-react": "^1.16.0",
     "react": "^19",
     "react-dom": "^19",

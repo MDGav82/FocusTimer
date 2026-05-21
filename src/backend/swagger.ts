@@ -693,31 +693,10 @@ const swaggerUiHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export const swaggerRoutes = {
-  "/api-docs": {
-    GET() {
-      return new Response(swaggerUiHtml, {
-        headers: { "Content-Type": "text/html" },
-      });
-    },
-  },
-  "/api-docs/openapi.json": {
-    GET() {
-      return Response.json(openApiSpec);
-    },
-  },
-  "/api-docs/swagger-ui.css": {
-    GET() {
-      return new Response(Bun.file(swaggerCssPath), {
-        headers: { "Content-Type": "text/css" },
-      });
-    },
-  },
-  "/api-docs/swagger-ui-bundle.js": {
-    GET() {
-      return new Response(Bun.file(swaggerBundlePath), {
-        headers: { "Content-Type": "application/javascript" },
-      });
-    },
-  },
-};
+import { Elysia } from "elysia";
+
+export const swaggerRoutes = new Elysia()
+  .get("/api-docs", () => new Response(swaggerUiHtml, { headers: { "Content-Type": "text/html" } }))
+  .get("/api-docs/openapi.json", () => openApiSpec)
+  .get("/api-docs/swagger-ui.css", () => new Response(Bun.file(swaggerCssPath), { headers: { "Content-Type": "text/css" } }))
+  .get("/api-docs/swagger-ui-bundle.js", () => new Response(Bun.file(swaggerBundlePath), { headers: { "Content-Type": "application/javascript" } }));
