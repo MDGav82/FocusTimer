@@ -15,16 +15,16 @@ export const jwtPlugin = new Elysia({ name: "jwt-plugin" })
 
 // Plugin to use on all protected routes
 // Verifies the httpOnly cookie and returns 401 if missing or invalid
-export const requireAuth = new Elysia({ name: "require-auth" })
+export const requireAuth = new Elysia({ name: "pomodoro" })
   .use(jwtPlugin)
-  .derive(async ({ jwt, cookie }) => {
+  .derive({ as: "scoped" }, async ({ jwt, cookie }) => {
     const token = (cookie.token?.value as string) ?? "";
     const payload = token ? await jwt.verify(token) : false;
     return {
       user: (payload || null) as { id: number; email: string } | null,
     };
   })
-  .onBeforeHandle(({ user, set }) => {
+  .onBeforeHandle({ as: "scoped" }, ({ user, set }) => {
     if (!user) {
       set.status = 401;
       return { error: "Unauthorized" };

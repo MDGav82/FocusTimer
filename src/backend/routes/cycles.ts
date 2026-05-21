@@ -4,15 +4,15 @@ import { requireAuth } from "../plugins/auth";
 
 type PeriodInput = { type_periode_id: number; time: number; index: number };
 
-async function getCycleWithPeriods(cycleId: number | string) {
-  const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${cycleId}`;
+async function getCycleWithPeriods(id: number | string) {
+  const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${id}`;
   if (!cycle) return null;
 
   const periods = await db`
     SELECT p.id, p.time, p.index, p.type_periode_id, tp.name AS type_name
     FROM period p
     JOIN type_periode tp ON tp.id = p.type_periode_id
-    WHERE p.cycle_id = ${cycleId}
+    WHERE p.cycle_id = ${id}
     ORDER BY p.index ASC
   `;
   return { ...cycle, periods };
@@ -21,10 +21,10 @@ async function getCycleWithPeriods(cycleId: number | string) {
 export const cycleRoutes = new Elysia()
   .use(requireAuth)
 
-  .get("/api/users/:userId/cycles", async ({ params: { userId }, set }) => {
+  .get("/api/users/:id/cycles", async ({ params: { id }, set }) => {
     try {
       const cycles = await db`
-        SELECT id, name FROM cycle WHERE user_id = ${userId} ORDER BY id ASC
+        SELECT id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
       return await Promise.all(cycles.map((c: { id: number }) => getCycleWithPeriods(c.id)));
     } catch {
@@ -33,12 +33,12 @@ export const cycleRoutes = new Elysia()
     }
   })
 
-  .post("/api/users/:userId/cycles", async ({ params: { userId }, body, set }) => {
+  .post("/api/users/:id/cycles", async ({ params: { id }, body, set }) => {
     const { name, periods } = body as any;
     if (!name) { set.status = 400; return { error: "Name is required" }; }
     try {
       const [cycle] = await db`
-        INSERT INTO cycle (user_id, name) VALUES (${userId}, ${name}) RETURNING id, name
+        INSERT INTO cycle (user_id, name) VALUES (${id}, ${name}) RETURNING id, name
       `;
       if (Array.isArray(periods) && periods.length > 0) {
         for (const p of periods as PeriodInput[]) {
@@ -105,15 +105,15 @@ export const cycleRoutes = new Elysia()
     }
   })
 
-  .get("/api/cycles/:cycleId/periods", async ({ params: { cycleId }, set }) => {
+  .get("/api/cycles/:id/periods", async ({ params: { id }, set }) => {
     try {
-      const [cycle] = await db`SELECT id FROM cycle WHERE id = ${cycleId}`;
+      const [cycle] = await db`SELECT id FROM cycle WHERE id = ${id}`;
       if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
       return await db`
         SELECT p.id, p.time, p.index, p.type_periode_id, tp.name AS type_name
         FROM period p
         JOIN type_periode tp ON tp.id = p.type_periode_id
-        WHERE p.cycle_id = ${cycleId}
+        WHERE p.cycle_id = ${id}
         ORDER BY p.index ASC
       `;
     } catch {
@@ -122,7 +122,7 @@ export const cycleRoutes = new Elysia()
     }
   })
 
-  .post("/api/cycles/:cycleId/periods", async ({ params: { cycleId }, body, set }) => {
+  .post("/api/cycles/:id/periods", async ({ params: { id }, body, set }) => {
     const { type_periode_id, time, index } = body as any;
     if (type_periode_id === undefined || time === undefined || index === undefined) {
       set.status = 400;
@@ -131,7 +131,7 @@ export const cycleRoutes = new Elysia()
     try {
       const [period] = await db`
         INSERT INTO period (cycle_id, type_periode_id, time, index)
-        VALUES (${cycleId}, ${type_periode_id}, ${time}, ${index})
+        VALUES (${id}, ${type_periode_id}, ${time}, ${index})
         RETURNING *
       `;
       set.status = 201;

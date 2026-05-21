@@ -5,7 +5,7 @@ import { requireAuth } from "../plugins/auth";
 export const historyRoutes = new Elysia()
   .use(requireAuth)
 
-  .get("/api/users/:userId/history", async ({ params: { userId }, set }) => {
+  .get("/api/users/:id/history", async ({ params: { id }, set }) => {
     try {
       return await db`
         SELECT
@@ -17,7 +17,7 @@ export const historyRoutes = new Elysia()
         JOIN type_periode tp ON tp.id = h.type_periode_id
         JOIN cycle c         ON c.id  = h.cycle_id
         LEFT JOIN task t     ON t.id  = h.task_id
-        WHERE h.user_id = ${userId}
+        WHERE h.user_id = ${id}
         ORDER BY h.start_date DESC
       `;
     } catch {
@@ -26,7 +26,7 @@ export const historyRoutes = new Elysia()
     }
   })
 
-  .post("/api/users/:userId/history", async ({ params: { userId }, body, set }) => {
+  .post("/api/users/:id/history", async ({ params: { id }, body, set }) => {
     const { type_periode_id, cycle_id, task_id, time_spent } = body as any;
     if (!type_periode_id || !cycle_id) {
       set.status = 400;
@@ -36,7 +36,7 @@ export const historyRoutes = new Elysia()
       const [entry] = await db`
         INSERT INTO history (user_id, type_periode_id, cycle_id, task_id, time_spent)
         VALUES (
-          ${userId}, ${type_periode_id}, ${cycle_id},
+          ${id}, ${type_periode_id}, ${cycle_id},
           ${task_id ?? null}, ${time_spent ?? 0}
         )
         RETURNING *

@@ -23,7 +23,8 @@ const api = new Elysia()
 const server = serve({
   routes: {
     "/api/*": (req: Request) => api.handle(req),
-    "/api-docs*": (req: Request) => api.handle(req),
+    "/api-docs": (req: Request) => api.handle(req),
+    "/api-docs/*": (req: Request) => api.handle(req),
     "/*": index,
   },
 

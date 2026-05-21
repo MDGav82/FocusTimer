@@ -1,7 +1,5 @@
-import { fileURLToPath } from "node:url";
-
-const swaggerCssPath = fileURLToPath(import.meta.resolve("swagger-ui-dist/swagger-ui.css"));
-const swaggerBundlePath = fileURLToPath(import.meta.resolve("swagger-ui-dist/swagger-ui-bundle.js"));
+import swaggerCss from "swagger-ui-dist/swagger-ui.css" with { type: "text" };
+import swaggerBundle from "swagger-ui-dist/swagger-ui-bundle.js" with { type: "text" };
 
 const openApiSpec = {
   openapi: "3.0.3",
@@ -10,9 +8,10 @@ const openApiSpec = {
     description: "Pomodoro",
     version: "1.0.0",
   },
-  servers: [{ url: "http://localhost:3000"}],
+  servers: [{ url: "http://localhost:3000" }],
   tags: [
-    { name: "Users", description: "Authentication and user management" },
+    { name: "Auth", description: "Authentication (register, login, logout)" },
+    { name: "Users", description: "User management" },
     { name: "Parameters", description: "Per-user timer settings" },
     { name: "Tasks", description: "Task management" },
     { name: "Cycles", description: "Pomodoro cycle definitions" },
@@ -21,6 +20,14 @@ const openApiSpec = {
     { name: "References", description: "Reference data (statuses, period types)" },
   ],
   components: {
+    securitySchemes: {
+      cookieAuth: {
+        type: "apiKey",
+        in: "cookie",
+        name: "token",
+        description: "JWT stored in httpOnly cookie, set automatically on login/register",
+      },
+    },
     schemas: {
       Error: {
         type: "object",
@@ -143,9 +150,9 @@ const openApiSpec = {
     },
   },
   paths: {
-    "/api/users/register": {
+    "/api/auth/register": {
       post: {
-        tags: ["Users"],
+        tags: ["Auth"],
         summary: "Register a new user",
         requestBody: {
           required: true,
@@ -163,16 +170,16 @@ const openApiSpec = {
           },
         },
         responses: {
-          "201": { description: "User created", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
+          "201": { description: "User created, token cookie set", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
           "400": { description: "Missing email or password", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "409": { description: "Email already in use", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
       },
     },
-    "/api/users/login": {
+    "/api/auth/login": {
       post: {
-        tags: ["Users"],
+        tags: ["Auth"],
         summary: "Login",
         requestBody: {
           required: true,
@@ -190,9 +197,31 @@ const openApiSpec = {
           },
         },
         responses: {
-          "200": { description: "Login successful", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
+          "200": { description: "Login successful, token cookie set", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
           "400": { description: "Missing email or password", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "401": { description: "Invalid credentials", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/api/auth/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "Logout (clears the token cookie)",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "Logged out", content: { "application/json": { schema: { type: "object", properties: { message: { type: "string" } } } } } },
+        },
+      },
+    },
+    "/api/auth/me": {
+      get: {
+        tags: ["Auth"],
+        summary: "Get current authenticated user",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "Current user", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
+          "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
       },
@@ -201,6 +230,7 @@ const openApiSpec = {
       get: {
         tags: ["Users"],
         summary: "Get all users",
+        security: [{ cookieAuth: [] }],
         responses: {
           "200": { description: "List of users", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/User" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -211,6 +241,7 @@ const openApiSpec = {
       get: {
         tags: ["Users"],
         summary: "Get a user with their parameters",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "User found", content: { "application/json": { schema: { $ref: "#/components/schemas/UserWithParameters" } } } },
@@ -221,6 +252,7 @@ const openApiSpec = {
       put: {
         tags: ["Users"],
         summary: "Update a user's email and/or password",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
@@ -246,6 +278,7 @@ const openApiSpec = {
       delete: {
         tags: ["Users"],
         summary: "Delete a user",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "User deleted" },
@@ -254,11 +287,12 @@ const openApiSpec = {
         },
       },
     },
-    "/api/users/{userId}/parameters": {
+    "/api/users/{id}/parameters": {
       get: {
         tags: ["Parameters"],
         summary: "Get user parameters",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "Parameters found", content: { "application/json": { schema: { $ref: "#/components/schemas/Parameters" } } } },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -268,7 +302,8 @@ const openApiSpec = {
       post: {
         tags: ["Parameters"],
         summary: "Create default parameters for a user (only if none exist)",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "201": { description: "Parameters created", content: { "application/json": { schema: { $ref: "#/components/schemas/Parameters" } } } },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -279,7 +314,8 @@ const openApiSpec = {
       put: {
         tags: ["Parameters"],
         summary: "Update user parameters (partial update)",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
           content: {
@@ -305,7 +341,8 @@ const openApiSpec = {
       delete: {
         tags: ["Parameters"],
         summary: "Reset user parameters to default values",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "Parameters reset to defaults" },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -313,11 +350,12 @@ const openApiSpec = {
         },
       },
     },
-    "/api/users/{userId}/tasks": {
+    "/api/users/{id}/tasks": {
       get: {
         tags: ["Tasks"],
         summary: "Get all tasks for a user",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "List of tasks", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Task" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -326,7 +364,8 @@ const openApiSpec = {
       post: {
         tags: ["Tasks"],
         summary: "Create a new task",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
           content: {
@@ -354,6 +393,7 @@ const openApiSpec = {
       get: {
         tags: ["Tasks"],
         summary: "Get a task by ID",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "Task found", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
@@ -364,6 +404,7 @@ const openApiSpec = {
       put: {
         tags: ["Tasks"],
         summary: "Update a task (partial update)",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
@@ -394,6 +435,7 @@ const openApiSpec = {
       delete: {
         tags: ["Tasks"],
         summary: "Delete a task",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "Task deleted" },
@@ -402,11 +444,12 @@ const openApiSpec = {
         },
       },
     },
-    "/api/users/{userId}/cycles": {
+    "/api/users/{id}/cycles": {
       get: {
         tags: ["Cycles"],
         summary: "Get all cycles with periods for a user",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "List of cycles", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Cycle" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -415,7 +458,8 @@ const openApiSpec = {
       post: {
         tags: ["Cycles"],
         summary: "Create a new cycle",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
           content: {
@@ -442,6 +486,7 @@ const openApiSpec = {
       get: {
         tags: ["Cycles"],
         summary: "Get a cycle with its periods",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "Cycle found", content: { "application/json": { schema: { $ref: "#/components/schemas/Cycle" } } } },
@@ -452,6 +497,7 @@ const openApiSpec = {
       put: {
         tags: ["Cycles"],
         summary: "Update a cycle name and/or replace its periods",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
@@ -476,6 +522,7 @@ const openApiSpec = {
       delete: {
         tags: ["Cycles"],
         summary: "Delete a cycle",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "Cycle deleted" },
@@ -484,11 +531,12 @@ const openApiSpec = {
         },
       },
     },
-    "/api/cycles/{cycleId}/periods": {
+    "/api/cycles/{id}/periods": {
       get: {
         tags: ["Periods"],
         summary: "Get all periods for a cycle",
-        parameters: [{ name: "cycleId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "List of periods", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Period" } } } } },
           "404": { description: "Cycle not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -498,7 +546,8 @@ const openApiSpec = {
       post: {
         tags: ["Periods"],
         summary: "Add a period to a cycle",
-        parameters: [{ name: "cycleId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
           content: {
@@ -518,6 +567,7 @@ const openApiSpec = {
       get: {
         tags: ["Periods"],
         summary: "Get a period by ID",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "Period found", content: { "application/json": { schema: { $ref: "#/components/schemas/Period" } } } },
@@ -528,6 +578,7 @@ const openApiSpec = {
       put: {
         tags: ["Periods"],
         summary: "Update a period (partial update)",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
@@ -553,6 +604,7 @@ const openApiSpec = {
       delete: {
         tags: ["Periods"],
         summary: "Delete a period",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "Period deleted" },
@@ -561,11 +613,12 @@ const openApiSpec = {
         },
       },
     },
-    "/api/users/{userId}/history": {
+    "/api/users/{id}/history": {
       get: {
         tags: ["History"],
         summary: "Get work session history for a user",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "History entries", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/HistoryEntry" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -574,7 +627,8 @@ const openApiSpec = {
       post: {
         tags: ["History"],
         summary: "Record a work session",
-        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "integer" } }],
+        security: [{ cookieAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
           content: {
@@ -599,30 +653,11 @@ const openApiSpec = {
         },
       },
     },
-    "/api/status": {
-      get: {
-        tags: ["References"],
-        summary: "Get all task statuses",
-        responses: {
-          "200": { description: "List of statuses", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Status" } } } } },
-          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
-    },
-    "/api/type_periode": {
-      get: {
-        tags: ["References"],
-        summary: "Get all period types",
-        responses: {
-          "200": { description: "List of period types", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/TypePeriode" } } } } },
-          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
-    },
     "/api/history/{id}": {
       get: {
         tags: ["History"],
         summary: "Get a history entry by ID",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "200": { description: "History entry found", content: { "application/json": { schema: { $ref: "#/components/schemas/HistoryEntry" } } } },
@@ -633,6 +668,7 @@ const openApiSpec = {
       put: {
         tags: ["History"],
         summary: "Update a history entry (partial update)",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
@@ -659,10 +695,33 @@ const openApiSpec = {
       delete: {
         tags: ["History"],
         summary: "Delete a history entry",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
           "204": { description: "History entry deleted" },
           "404": { description: "History entry not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/api/status": {
+      get: {
+        tags: ["References"],
+        summary: "Get all task statuses",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "List of statuses", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Status" } } } } },
+          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/api/type_periode": {
+      get: {
+        tags: ["References"],
+        summary: "Get all period types",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "List of period types", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/TypePeriode" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
       },
@@ -685,7 +744,7 @@ const swaggerUiHtml = `<!DOCTYPE html>
     SwaggerUIBundle({
       url: "/api-docs/openapi.json",
       dom_id: "#swagger-ui",
-      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      presets: [SwaggerUIBundle.presets.apis],
       layout: "BaseLayout",
       deepLinking: true,
     });
@@ -698,5 +757,5 @@ import { Elysia } from "elysia";
 export const swaggerRoutes = new Elysia()
   .get("/api-docs", () => new Response(swaggerUiHtml, { headers: { "Content-Type": "text/html" } }))
   .get("/api-docs/openapi.json", () => openApiSpec)
-  .get("/api-docs/swagger-ui.css", () => new Response(Bun.file(swaggerCssPath), { headers: { "Content-Type": "text/css" } }))
-  .get("/api-docs/swagger-ui-bundle.js", () => new Response(Bun.file(swaggerBundlePath), { headers: { "Content-Type": "application/javascript" } }));
+  .get("/api-docs/swagger-ui.css", () => new Response(swaggerCss, { headers: { "Content-Type": "text/css" } }))
+  .get("/api-docs/swagger-ui-bundle.js", () => new Response(swaggerBundle, { headers: { "Content-Type": "application/javascript" } }));

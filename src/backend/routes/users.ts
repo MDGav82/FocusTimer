@@ -64,13 +64,13 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .get("/api/users/:userId/parameters", async ({ params: { userId }, set }) => {
+  .get("/api/users/:id/parameters", async ({ params: { id }, set }) => {
     try {
       const [params] = await db`
         SELECT p.*
         FROM parameters p
         JOIN users u ON u.parameters_id = p.id
-        WHERE u.id = ${userId}
+        WHERE u.id = ${id}
       `;
       if (!params) { set.status = 404; return { error: "User not found" }; }
       return params;
@@ -80,16 +80,16 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .post("/api/users/:userId/parameters", async ({ params: { userId }, set }) => {
+  .post("/api/users/:id/parameters", async ({ params: { id }, set }) => {
     try {
-      const [existing] = await db`SELECT parameters_id FROM users WHERE id = ${userId}`;
+      const [existing] = await db`SELECT parameters_id FROM users WHERE id = ${id}`;
       if (!existing) { set.status = 404; return { error: "User not found" }; }
       if (existing.parameters_id) {
         set.status = 409;
         return { error: "Parameters already exist, use PUT to update" };
       }
       const [params] = await db`INSERT INTO parameters DEFAULT VALUES RETURNING *`;
-      await db`UPDATE users SET parameters_id = ${params.id} WHERE id = ${userId}`;
+      await db`UPDATE users SET parameters_id = ${params.id} WHERE id = ${id}`;
       set.status = 201;
       return params;
     } catch {
@@ -98,7 +98,7 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .put("/api/users/:userId/parameters", async ({ params: { userId }, body, set }) => {
+  .put("/api/users/:id/parameters", async ({ params: { id }, body, set }) => {
     const { auto_start_work, auto_start_rest, auto_restart_cycle, notifications_on } =
       body as any;
     try {
@@ -110,7 +110,7 @@ export const userRoutes = new Elysia()
           auto_restart_cycle = COALESCE(${auto_restart_cycle ?? null}, p.auto_restart_cycle),
           notifications_on   = COALESCE(${notifications_on ?? null}, p.notifications_on)
         FROM users u
-        WHERE u.parameters_id = p.id AND u.id = ${userId}
+        WHERE u.parameters_id = p.id AND u.id = ${id}
         RETURNING p.*
       `;
       if (!updated) { set.status = 404; return { error: "User not found" }; }
@@ -121,7 +121,7 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .delete("/api/users/:userId/parameters", async ({ params: { userId }, set }) => {
+  .delete("/api/users/:id/parameters", async ({ params: { id }, set }) => {
     try {
       const [reset] = await db`
         UPDATE parameters p
@@ -131,7 +131,7 @@ export const userRoutes = new Elysia()
           auto_restart_cycle = false,
           notifications_on   = true
         FROM users u
-        WHERE u.parameters_id = p.id AND u.id = ${userId}
+        WHERE u.parameters_id = p.id AND u.id = ${id}
         RETURNING p.*
       `;
       if (!reset) { set.status = 404; return { error: "User not found" }; }

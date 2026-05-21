@@ -94,7 +94,13 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
   // Logout — removes the cookie
   .post("/logout", ({ cookie }) => {
-    cookie.token?.remove();
+    cookie.token!.set({
+      value: "",
+      httpOnly: true,
+      maxAge: 0,
+      sameSite: "lax",
+      path: "/",
+    });
     return { message: "Logged out" };
   })
 

@@ -5,13 +5,13 @@ import { requireAuth } from "../plugins/auth";
 export const taskRoutes = new Elysia()
   .use(requireAuth)
 
-  .get("/api/users/:userId/tasks", async ({ params: { userId }, set }) => {
+  .get("/api/users/:id/tasks", async ({ params: { id }, set }) => {
     try {
       return await db`
         SELECT t.*, s.name AS status_name
         FROM task t
         JOIN status s ON s.id = t.status_id
-        WHERE t.user_id = ${userId}
+        WHERE t.user_id = ${id}
         ORDER BY t.creation_date DESC
       `;
     } catch {
@@ -20,14 +20,14 @@ export const taskRoutes = new Elysia()
     }
   })
 
-  .post("/api/users/:userId/tasks", async ({ params: { userId }, body, set }) => {
+  .post("/api/users/:id/tasks", async ({ params: { id }, body, set }) => {
     const { title, description, estimated_time } = body as any;
     if (!title) { set.status = 400; return { error: "Title is required" }; }
     try {
       const [task] = await db`
         INSERT INTO task (user_id, status_id, title, description, estimated_time)
         VALUES (
-          ${userId},
+          ${id},
           (SELECT id FROM status WHERE name = 'pending'),
           ${title},
           ${description ?? null},

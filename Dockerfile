@@ -8,6 +8,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json bunfig.toml tsconfig.json bun-env.d.ts ./
 COPY src/ ./src/
+COPY lib/ ./lib/
 RUN bun build --compile --minify src/index.ts --outfile=/app/focustimer
 
 FROM debian:bookworm-slim AS runner
