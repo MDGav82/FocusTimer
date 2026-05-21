@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Timer } from "./Timer";
-import { Cycle } from "./Cycle";
+import { Cycle } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
 
 interface Period {
