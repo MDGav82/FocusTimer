@@ -1,8 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { APITester } from "./APITester";
 
-import logo from "./logo.svg";
-import reactLogo from "./react.svg";
 import NavBar from "./app/NavBar";
 
 /**
@@ -15,7 +12,6 @@ export function App() {
       <h1>FocusTimer</h1>
       <NavBar/>
       <Outlet/>
-      <APITester />
     </div>
   );
 }
