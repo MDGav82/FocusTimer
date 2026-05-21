@@ -1,3 +1,8 @@
+import { fileURLToPath } from "node:url";
+
+const swaggerCssPath = fileURLToPath(import.meta.resolve("swagger-ui-dist/swagger-ui.css"));
+const swaggerBundlePath = fileURLToPath(import.meta.resolve("swagger-ui-dist/swagger-ui-bundle.js"));
+
 const openApiSpec = {
   openapi: "3.0.3",
   info: {
@@ -671,11 +676,11 @@ const swaggerUiHtml = `<!DOCTYPE html>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FocusTimer API Docs</title>
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="stylesheet" href="/api-docs/swagger-ui.css" />
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="/api-docs/swagger-ui-bundle.js"></script>
   <script>
     SwaggerUIBundle({
       url: "/api-docs/openapi.json",
@@ -699,6 +704,20 @@ export const swaggerRoutes = {
   "/api-docs/openapi.json": {
     GET() {
       return Response.json(openApiSpec);
+    },
+  },
+  "/api-docs/swagger-ui.css": {
+    GET() {
+      return new Response(Bun.file(swaggerCssPath), {
+        headers: { "Content-Type": "text/css" },
+      });
+    },
+  },
+  "/api-docs/swagger-ui-bundle.js": {
+    GET() {
+      return new Response(Bun.file(swaggerBundlePath), {
+        headers: { "Content-Type": "application/javascript" },
+      });
     },
   },
 };
