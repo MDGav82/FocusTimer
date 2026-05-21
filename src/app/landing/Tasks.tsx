@@ -1,12 +1,5 @@
 import { useState } from "react";
-
-interface Task {
-  id: number;
-  title: string;
-  status: string;
-  estimated: number; // en minutes
-  actual: number;    // en secondes
-}
+import { type Task, Status } from "@/model/Task";
 
 interface TasksProps {
   tasks: Task[];
@@ -15,7 +8,7 @@ interface TasksProps {
   onAddTask: (title: string, minutes: number) => void;
   onEditTask: (id: number, title: string, minutes: number) => void;
   onDeleteAll: () => void;
-  onToggleComplete: (id: number) => void; // Nouvelle prop déclarée
+  onToggleComplete: (id: number) => void;
 }
 
 export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTask, onDeleteAll, onToggleComplete }: TasksProps) {
@@ -53,8 +46,8 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
   const openEditModal = (task: Task) => {
     setEditingTask(task);
     setTitleInput(task.title);
-    setHoursInput(Math.floor(task.estimated / 60));
-    setMinutesInput(task.estimated % 60);
+    setHoursInput(Math.floor((task.estimatedTime ?? 0) / 60));
+    setMinutesInput((task.estimatedTime ?? 0) % 60);
   };
 
   const submitAdd = (e: React.FormEvent) => {
@@ -73,6 +66,12 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
     if (totalMinutes <= 0) return;
     onEditTask(editingTask.id, titleInput, totalMinutes);
     setEditingTask(null);
+  };
+
+  const getStatusLabel = (status: Status) => {
+    if (status === Status.FINISHED) return "Completed";
+    if (status === Status.PROGRESS) return "In Progress";
+    return "Todo";
   };
 
   return (
@@ -105,7 +104,7 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
         ) : (
           tasks.map((task) => {
             const isSelected = task.id === selectedTaskId;
-            const isCompleted = task.status === "Completed";
+            const isCompleted = task.status === Status.FINISHED;
 
             return (
               <div 
@@ -127,17 +126,16 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
                   <div className="flex items-center gap-3 text-xs text-slate-400">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                       isCompleted ? "bg-emerald-500/10 text-emerald-400" :
-                      task.status === "In Progress" ? "bg-amber-500/10 text-amber-400" : "bg-slate-700 text-slate-400"
+                      task.status === Status.PROGRESS ? "bg-amber-500/10 text-amber-400" : "bg-slate-700 text-slate-400"
                     }`}>
-                      {task.status}
+                      {getStatusLabel(task.status)}
                     </span>
                     <span>
-                      Progression : <strong className="text-slate-200 font-mono">{formatProgress(task.actual)}</strong> / {formatEstimation(task.estimated)}
+                      Progression : <strong className="text-slate-200 font-mono">{formatProgress(task.timeSpent ?? 0)}</strong> / {formatEstimation(task.estimatedTime ?? 0)}
                     </span>
                   </div>
                 </div>
 
-                {/* Bloc de boutons réorganisé */}
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={() => openEditModal(task)}
@@ -146,7 +144,6 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
                     Détails
                   </button>
                   
-                  {/* Bouton Sélectionner / Sélectionnée (désactivé si complété) */}
                   <button 
                     disabled={isCompleted}
                     onClick={() => onSelectTask(isSelected ? null : task.id)}
@@ -161,7 +158,6 @@ export function Tasks({ tasks, selectedTaskId, onSelectTask, onAddTask, onEditTa
                     {isSelected ? "Sélectionnée" : "Sélectionner"}
                   </button>
 
-                  {/* Nouveau Bouton : Valider / Annuler la validation */}
                   <button 
                     onClick={() => onToggleComplete(task.id)}
                     className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-md ${
