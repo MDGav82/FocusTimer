@@ -1,32 +1,21 @@
 import { serve } from "bun";
 import index from "./index.html";
+import { userRoutes } from "./backend/routes/users";
+import { taskRoutes } from "./backend/routes/tasks";
+import { cycleRoutes } from "./backend/routes/cycles";
+import { historyRoutes } from "./backend/routes/history";
+import { referenceRoutes } from "./backend/routes/references";
+import { swaggerRoutes } from "./backend/swagger";
 
 const server = serve({
   routes: {
-    // Serve index.html for all unmatched routes.
+    ...userRoutes,
+    ...taskRoutes,
+    ...cycleRoutes,
+    ...historyRoutes,
+    ...referenceRoutes,
+    ...swaggerRoutes,
     "/*": index,
-
-    "/api/hello": {
-      async GET(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "GET",
-        });
-      },
-      async PUT(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "PUT",
-        });
-      },
-    },
-
-    "/api/hello/:name": async req => {
-      const name = req.params.name;
-      return Response.json({
-        message: `Hello, ${name}!`,
-      });
-    },
   },
 
   development: process.env.NODE_ENV !== "production" && {

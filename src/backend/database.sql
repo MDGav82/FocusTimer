@@ -65,5 +65,5 @@ CREATE TABLE history (
   time_spent      INTEGER NOT NULL DEFAULT 0
 );
 
-INSERT INTO status (name) VALUES ('todo'), ('in_progress'), ('done');
-INSERT INTO type_periode (name) VALUES ('work'), ('short_break'), ('long_break');
+INSERT INTO status (name) VALUES ('pending'), ('progress'), ('finish');
+INSERT INTO type_periode (name) VALUES ('work'), ('break');
