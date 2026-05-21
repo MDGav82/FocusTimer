@@ -23,13 +23,9 @@ export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CyclePr
           </span>
           <h3 className="text-lg font-bold text-slate-100 mt-1">{currentCycleName}</h3>
         </div>
-        <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">
-          Sélectionner un cycle
-        </button>
-        <Button>Test</Button>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline">Sélectionner un cycle</Button>
+            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">Sélectionner un cycle</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
