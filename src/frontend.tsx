@@ -11,7 +11,7 @@ import { App } from "./App";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardPage from "./app/DashboardPage";
 import ParamsPage from "./app/SettingsPage";
-import LandingPage from "./app/LandingPage";
+import { LandingPage } from "./app/landing/LandingPage";
 
 // Check to avoid multiple calls
 let hasStarted = false;
