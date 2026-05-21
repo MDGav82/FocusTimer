@@ -1,5 +1,5 @@
-import type {StorableConstructor, StorableInstance} from "@/domain/IObject.ts";
-import type {IStore} from "@/domain/IStore.ts";
+import type {StorableConstructor, StorableInstance} from "@/storage/IObject.ts";
+import type {IStore} from "@/storage/IStore.ts";
 
 const DB_NAME = 'focusTimer';
 const DB_VERSION = 1;

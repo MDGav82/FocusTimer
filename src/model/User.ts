@@ -2,8 +2,8 @@ import type { Parameters } from './Parameters.ts';
 import type { Task } from './Task.ts';
 import type { Cycle } from './Cycle.ts';
 import type { History } from './History.ts';
-import type { IndexDefinition, StorableInstance } from "@/domain/IObject.ts";
-import { register } from "@/domain/IdbStore.ts";
+import type { IndexDefinition, StorableInstance } from "@/storage/IObject.ts";
+import { register } from "@/storage/IdbStore.ts";
 
 @register
 export class User implements StorableInstance {

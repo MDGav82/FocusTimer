@@ -1,4 +1,4 @@
-import type {IStore} from "@/domain/IStore.ts";
+import type {IStore} from "@/storage/IStore.ts";
 
 export class RemoteStore implements IStore {
     constructor() {}

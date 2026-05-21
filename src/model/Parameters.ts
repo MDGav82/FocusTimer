@@ -1,5 +1,5 @@
-import type {IndexDefinition, StorableInstance} from "@/domain/IObject.ts";
-import {register} from "@/domain/IdbStore.ts";
+import type {IndexDefinition, StorableInstance} from "@/storage/IObject.ts";
+import {register} from "@/storage/IdbStore.ts";
 
 @register
 export class Parameters implements StorableInstance {
