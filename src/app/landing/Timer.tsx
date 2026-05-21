@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-
-interface Period {
-  name: string;
-  type: "work" | "short_break" | "long_break";
-  duration: number;
-}
+import type { Period } from "@/model/Period";
 
 interface TimerProps {
   currentPeriod: Period;
@@ -12,15 +7,21 @@ interface TimerProps {
   onPrevious: () => void;
   totalSessionTime: number;
   elapsedBeforeCurrent: number;
-  onTick: () => void; // Nouvelle prop pour synchroniser la progression de la tâche
+  onTick: () => void;
 }
 
+const PERIOD_LABELS: Record<string, string> = {
+  work: "Travail",
+  short_break: "Courte Pause",
+  long_break: "Longue Pause",
+};
+
 export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, elapsedBeforeCurrent, onTick }: TimerProps) {
-  const [timeLeft, setTimeLeft] = useState<number>(currentPeriod.duration);
+  const [timeLeft, setTimeLeft] = useState<number>(currentPeriod.time);
   const [isActive, setIsActive] = useState<boolean>(false);
 
   useEffect(() => {
-    setTimeLeft(currentPeriod.duration);
+    setTimeLeft(currentPeriod.time);
     setIsActive(false);
   }, [currentPeriod]);
 
@@ -29,7 +30,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
-        onTick(); // On notifie le parent à chaque seconde écoulée
+        onTick();
       }, 1000);
     } else if (timeLeft === 0) {
       setIsActive(false);
@@ -46,24 +47,28 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
   const handleReset = () => {
     setIsActive(false);
-    setTimeLeft(currentPeriod.duration);
+    setTimeLeft(currentPeriod.time);
   };
 
-  const currentPeriodElapsed = currentPeriod.duration - timeLeft;
+  const currentPeriodElapsed = currentPeriod.time - timeLeft;
   const totalElapsed = elapsedBeforeCurrent + currentPeriodElapsed;
 
   const getHeaderStyle = () => {
-    switch (currentPeriod.type) {
+    switch (String(currentPeriod.typePeriode)) {
       case "work": return "text-rose-400 bg-rose-400/10";
       case "short_break": return "text-cyan-400 bg-cyan-400/10";
       case "long_break": return "text-amber-400 bg-amber-400/10";
+      default: return "text-slate-400 bg-slate-400/10";
     }
   };
+
+  // Récupération du joli nom de la période en français
+  const displayName = PERIOD_LABELS[String(currentPeriod.typePeriode)] || "Période";
 
   return (
     <div className="bg-slate-800/80 backdrop-blur-md text-white p-8 rounded-2xl shadow-2xl max-w-md mx-auto border border-slate-700/50 text-center">
       <span className={`text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full transition-colors duration-300 ${getHeaderStyle()}`}>
-        Focus Période : {currentPeriod.name}
+        Focus Période : {displayName}
       </span>
       
       <div className="text-7xl font-mono font-extrabold tracking-tight my-6 bg-gradient-to-r from-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(244,63,94,0.2)]">
@@ -78,7 +83,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
         <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-700/30">
           <div 
             className="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full transition-all duration-300 ease-out"
-            style={{ width: `${(totalElapsed / totalSessionTime) * 100}%` }}
+            style={{ width: `${totalSessionTime > 0 ? (totalElapsed / totalSessionTime) * 100 : 0}%` }}
           ></div>
         </div>
       </div>
