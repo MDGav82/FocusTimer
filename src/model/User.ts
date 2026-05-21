@@ -2,10 +2,8 @@ import type { Parameters } from './Parameters.ts';
 import type { Task } from './Task.ts';
 import type { Cycle } from './Cycle.ts';
 import type { History } from './History.ts';
-import type { IndexDefinition, StorableInstance } from "@/storage/IObject.ts";
-import { register } from "@/storage/IdbStore.ts";
+import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
 
-@register
 export class User implements StorableInstance {
     static readonly storeName: string = 'user';
     static readonly keyPath: string = 'id';
