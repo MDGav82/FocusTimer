@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv \"d:\\\\Documents\\\\Programme\\\\MyDigitalSchool\\\\FocusTimer\\\\src\\\\backend\\\\routes\\\\lookups.ts\" \"d:\\\\Documents\\\\Programme\\\\MyDigitalSchool\\\\FocusTimer\\\\src\\\\backend\\\\routes\\\\references.ts\")"
+    ],
+    "additionalDirectories": [
+      "d:\\Documents\\Programme\\MyDigitalSchool\\FocusTimer\\src\\backend\\routes"
+    ]
+  }
+}
