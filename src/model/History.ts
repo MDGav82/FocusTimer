@@ -1,8 +1,6 @@
 import type { PeriodType } from './PeriodType.ts';
-import type {IndexDefinition, StorableInstance} from "@/storage/IObject.ts";
-import {register} from "@/storage/IdbStore.ts";
+import type {IndexDefinition, StorableInstance} from "@/storage/IStorable.ts";
 
-@register
 export class History implements StorableInstance {
     static readonly storeName: string = 'history';
     static readonly keyPath: string = 'id';

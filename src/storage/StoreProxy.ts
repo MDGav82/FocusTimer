@@ -1,6 +1,6 @@
 import type {IStore} from "./IStore.ts";
-import {IdbStore} from "./IdbStore.ts";
-import {RemoteStore} from "./RemoteStore.ts";
+import {IdbStore} from "./stores/IdbStore.ts";
+import {RemoteStore} from "./stores/RemoteStore.ts";
 
 class StoreProxy {
     private constructor(private stores: IStore[]) {}
