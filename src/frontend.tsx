@@ -8,10 +8,20 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import DashboardPage from "./app/DashboardPage";
+import ParamsPage from "./app/SettingsPage";
+import LandingPage from "./app/LandingPage";
 
 // Check to avoid multiple calls
 let hasStarted = false;
 
+/**
+ * 
+ * Routes : 
+ * - / : LandingPage
+ * - /dashboard : DashboardPage
+ * - /settings : SettingsPage
+ */
 function start() {
   if (hasStarted) return;
   hasStarted = true;
@@ -19,7 +29,11 @@ function start() {
   root.render(
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<App />}/>
+      <Route element={<App />}>
+        <Route index element={<LandingPage />}/>
+        <Route path="dashboard" element={<DashboardPage />}/>
+        <Route path="settings" element={<ParamsPage />}/>
+      </Route>
     </Routes>
   </BrowserRouter>);
 }
