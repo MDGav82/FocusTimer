@@ -15,3 +15,8 @@ declare module "*.module.css" {
   const classes: { readonly [key: string]: string };
   export = classes;
 }
+
+declare module "swagger-ui-dist/swagger-ui-bundle.js" {
+  const content: string;
+  export = content;
+}
