@@ -233,6 +233,7 @@ export function LandingPage() {
         onDuplicateCycle={handleDuplicateCycle}
         onCreateCycle={handleCreateCycle}
         onSelectCycle={handleSelectCycle}
+        onSelectPeriodIndex={setCurrentPeriodIndex}
       />
       
       <Tasks 

@@ -12,6 +12,7 @@ interface CycleProps {
   onDuplicateCycle?: (id: number) => void;
   onCreateCycle?: () => void;
   onSelectCycle?: (id: number) => void;
+  onSelectPeriodIndex?: (index: number) => void; // Nouvelle prop ajoutée ici
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -27,7 +28,8 @@ export function Cycle({
   onUpdateCycle,
   onDuplicateCycle,
   onCreateCycle,
-  onSelectCycle
+  onSelectCycle,
+  onSelectPeriodIndex // Récupération de la prop
 }: CycleProps) {
   const currentCycleName = currentCycle?.name ?? "Aucun cycle actif";
   const periods = currentCycle?.periods ?? [];
@@ -344,7 +346,6 @@ export function Cycle({
                   );
                 })
               ) : (
-                /* Nouvel état vide personnalisé respectant parfaitement votre charte graphique */
                 <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-700 rounded-2xl bg-slate-900/20 my-2">
                   <div className="text-3xl mb-2">⏱️</div>
                   <h4 className="text-sm font-bold text-slate-300">Aucun cycle disponible</h4>
@@ -370,7 +371,9 @@ export function Cycle({
           {periods.length > 0 ? (
             periods.map((p, idx) => {
               const isCurrent = idx === currentPeriodIndex;
-              let badgeColor = "bg-slate-800 text-slate-400 border-slate-700";
+              
+              // Base de style interactif commun : curseur pointer, transition et effet au survol
+              let badgeColor = "bg-slate-800 text-slate-400 border-slate-700 cursor-pointer hover:bg-slate-700/60 hover:text-slate-300 hover:scale-105 active:scale-95";
               
               let currentType = String(p.typePeriode || "");
               if (currentType.includes("break")) {
@@ -379,9 +382,9 @@ export function Cycle({
 
               if (isCurrent) {
                 if (currentType === "work") {
-                  badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105";
+                  badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105 cursor-default";
                 } else {
-                  badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105";
+                  badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105 cursor-default";
                 }
               }
 
@@ -390,7 +393,10 @@ export function Cycle({
 
               return (
                 <div key={p.id ?? idx} className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 rounded-lg border transition-all duration-300 ${badgeColor}`}>
+                  <span 
+                    onClick={() => !isCurrent && onSelectPeriodIndex?.(idx)} // Déclenche le changement si ce n'est pas le timer actif
+                    className={`px-2.5 py-1 rounded-lg border transition-all duration-200 select-none ${badgeColor}`}
+                  >
                     {displayName} ({displayMinutes}m)
                   </span>
                   {idx < periods.length - 1 && <span className="text-slate-600">➔</span>}
