@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import CycleSelect from "./CycleSelect";
 
 interface Period {
   name: string;
@@ -27,13 +28,14 @@ export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CyclePr
           <DialogTrigger asChild>
             <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">Sélectionner un cycle</Button>
           </DialogTrigger>
-          <DialogContent>
+               <DialogContent>
             <DialogHeader>
-              <DialogTitle>Sélectionner un cycle</DialogTitle>
+              <DialogTitle>Vos cycles</DialogTitle>
               <DialogDescription>
                 Choisissez le cycle de travail que vous souhaitez utiliser.
               </DialogDescription>
             </DialogHeader>
+            <CycleSelect/>
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline">Fermer</Button>
