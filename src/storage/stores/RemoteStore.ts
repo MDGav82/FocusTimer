@@ -1,17 +1,16 @@
-import type { Cycle } from "@/model/Cycle";
-import type { Period } from "@/model/Period";
-import type { Task } from "@/model/Task";
+import { Cycle } from "@/model/Cycle";
+import { Period } from "@/model/Period";
+import { PeriodType } from "@/model/PeriodType";
+import { Task, Status } from "@/model/Task";
 import type { IStore } from "@/storage/IStore.ts";
 
 export class RemoteStore implements IStore {
-    //allow for url from env var
     private baseUrl: string = (process.env.DATABASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
-    
-    // temp id for routes /api/users/:id/
-    // TODO: make it works with auth bs 👍
     private defaultUserId: number = 1;
 
+
     constructor() {}
+
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -26,22 +25,31 @@ export class RemoteStore implements IStore {
             throw new Error(`[RemoteStore Error] ${options?.method || 'GET'} ${endpoint} failed (${response.status})`);
         }
 
-        // if empty(204) fuck sending json 👍
         if (response.status === 204) {
             return {} as T;
         }
 
-        return response.json();
+        return response.json() as Promise<T>;
     }
 
-    //task part
+
+    private mapStringToPeriodType(typeName: string): PeriodType {
+        const lowerName = typeName.toLowerCase();
+        if (lowerName === "work") {
+            return PeriodType.WORK;
+        }
+        return PeriodType.BREAK;
+    }
+
+    //TASK
     async createTask(task: Task): Promise<number> {
         const body = {
             title: task.title,
             description: task.description,
             estimated_time: task.estimatedTime
         };
-        const createdTask = await this.request<any>(`/api/users/${this.defaultUserId}/tasks`, {
+        
+        const createdTask = await this.request<Task>(`/api/users/${this.defaultUserId}/tasks`, {
             method: "POST",
             body: JSON.stringify(body),
         });
@@ -50,19 +58,9 @@ export class RemoteStore implements IStore {
     }
 
     async getAllTasks(user_id: number): Promise<Task[]> {
-        const data = await this.request<any[]>(`/api/users/${user_id}/tasks`, {
+        return this.request<Task[]>(`/api/users/${user_id}/tasks`, {
             method: "GET",
         });
-        
-        return data.map(t => ({
-            ...t,
-            estimatedTime: t.estimated_time,
-            timeSpent: t.time_spent,
-            creationDate: new Date(t.creation_date),
-            startDate: t.start_date ? new Date(t.start_date) : null,
-            endDate: t.end_date ? new Date(t.end_date) : null,
-            status: t.status_name?.toUpperCase()
-        })) as unknown as Task[];
     }
 
     async updateTaskTitle(task: Task): Promise<void> {
@@ -83,8 +81,8 @@ export class RemoteStore implements IStore {
         await this.request<void>(`/api/tasks/${task.id}`, {
             method: "PUT",
             body: JSON.stringify({
-                start_date: task.startDate ?? new Date().toISOString(),
-                status_id: 2
+                start_date: task.startDate ? task.startDate.toISOString() : new Date().toISOString(),
+                status_id: Status.PROGRESS
             }),
         });
     }
@@ -102,8 +100,8 @@ export class RemoteStore implements IStore {
         await this.request<void>(`/api/tasks/${task.id}`, {
             method: "PUT",
             body: JSON.stringify({
-                end_date: task.endDate ?? new Date().toISOString(),
-                status_id: 3
+                end_date: task.endDate ? task.endDate.toISOString() : new Date().toISOString(),
+                status_id: Status.FINISHED 
             }),
         });
     }
@@ -114,15 +112,15 @@ export class RemoteStore implements IStore {
         });
     }
 
-    //cycle part
+    //CYCLE
     async createCycle(cycle: Cycle): Promise<number> {
         const periodsPayload = cycle.periods?.map(p => ({
-            type_periode_id: p.typePeriode === ("work" as any) ? 1 : 2,
+            type_periode_id: p.typePeriode.valueOf(),
             time: p.time,
             index: p.index
         })) || [];
 
-        const createdCycle = await this.request<any>(`/api/users/${this.defaultUserId}/cycles`, {
+        const createdCycle = await this.request<Cycle>(`/api/users/${this.defaultUserId}/cycles`, {
             method: "POST",
             body: JSON.stringify({
                 name: cycle.name,
@@ -134,37 +132,17 @@ export class RemoteStore implements IStore {
     }
 
     async getAllCycles(user_id: number): Promise<Cycle[]> {
-        const data = await this.request<any[]>(`/api/users/${user_id}/cycles`, {
+        return this.request<Cycle[]>(`/api/users/${user_id}/cycles`, {
             method: "GET",
         });
-
-        return data.map(c => ({
-            id: c.id,
-            name: c.name,
-            periods: c.periods?.map((p: any) => ({
-                id: p.id,
-                time: p.time,
-                index: p.index,
-                typePeriode: p.type_name
-            })) || []
-        })) as unknown as Cycle[];
     }
 
     async getCycle(cycle_id: number): Promise<Cycle> {
-        const c = await this.request<any>(`/api/cycles/${cycle_id}`, {
+        return this.request<Cycle>(`/api/cycles/${cycle_id}`, {
             method: "GET",
         });
 
-        return {
-            id: c.id,
-            name: c.name,
-            periods: c.periods?.map((p: any) => ({
-                id: p.id,
-                time: p.time,
-                index: p.index,
-                typePeriode: p.type_name
-            })) || []
-        } as unknown as Cycle;
+        
     }
 
     async updateCycleName(cycle: Cycle): Promise<void> {
@@ -180,14 +158,14 @@ export class RemoteStore implements IStore {
         });
     }
 
-    //period part
+    //PERIOD
     async createPeriod(period: Period): Promise<number> {
-        const cycleId = (period as any).cycleId ?? 1; 
+        const cycleId = "cycleId" in period ? (period as Record<string, number>).cycleId : 1; 
 
-        const createdPeriod = await this.request<any>(`/api/cycles/${cycleId}/periods`, {
+        const createdPeriod = await this.request<Period>(`/api/cycles/${cycleId}/periods`, {
             method: "POST",
             body: JSON.stringify({
-                type_periode_id: period.typePeriode === ("work" as any) ? 1 : 2,
+                type_periode_id:  period.typePeriode.valueOf(),
                 time: period.time,
                 index: period.index
             }),
@@ -216,9 +194,7 @@ export class RemoteStore implements IStore {
         });
     }
 
-
-    //mock for debugging
     mock(): void {
-        console.log(`[RemoteStore] Pointé sur l'API Elysia : ${this.baseUrl}`);
+        console.log(`[RemoteStore] Connecté via des modèles directs à l'API : ${this.baseUrl}`);
     }
 }
