@@ -1,27 +1,18 @@
-FROM oven/bun:1.3-slim AS deps
-WORKDIR /app
-COPY package.json bun.lock bunfig.toml ./
-RUN bun install --frozen-lockfile
+FROM oven/bun:1-alpine AS base
+WORKDIR /temp/
 
-FROM oven/bun:1.3-slim AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bunfig.toml tsconfig.json bun-env.d.ts build.ts ./
-COPY src/ ./src/
-COPY lib/ ./lib/
-RUN bun run build.ts
+FROM base AS install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
-FROM oven/bun:1.3-slim AS runner
-WORKDIR /app
+FROM base AS builder
+COPY --from=install /temp/node_modules node_modules
+COPY . .
+
 ENV NODE_ENV=production
+RUN bun run build
 
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-COPY --from=deps --chown=appuser:appuser /app/node_modules ./node_modules
-COPY --from=builder --chown=appuser:appuser /app/dist ./dist
-COPY --chown=appuser:appuser package.json bunfig.toml ./
-COPY --chown=appuser:appuser src/ ./src/
-COPY --chown=appuser:appuser lib/ ./lib/
+FROM nginx:alpine
+COPY --from=builder /temp/dist /usr/share/nginx/html
 
-USER appuser
-EXPOSE 3000
-CMD ["bun", "src/index.ts"]
+EXPOSE 80
