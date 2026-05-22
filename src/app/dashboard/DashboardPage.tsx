@@ -1,4 +1,4 @@
-import { Task, Status } from "@/model/Task";
+import { type TaskType, Status } from "@/model/Task";
 import {
     ChartContainer,
     ChartTooltip,
@@ -10,12 +10,12 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { CheckCircle2, Clock, Zap } from "lucide-react";
 
-const MOCK_TASKS: Task[] = [
-    new Task(1, "Conception UI",    "", 90,  new Date(), new Date(), 5700,  new Date(), Status.FINISHED),
-    new Task(2, "Intégration API",  "", 120, new Date(), new Date(), 6900,  new Date(), Status.FINISHED),
-    new Task(3, "Tests unitaires",  "", 60,  new Date(), new Date(), 2100,  new Date(), Status.FINISHED),
-    new Task(4, "Documentation",    "", 45,  new Date(), new Date(), 0,     new Date(), Status.PENDING),
-    new Task(5, "Refactoring",      "", 30,  new Date(), new Date(), 2520,  new Date(), Status.PENDING),
+const MOCK_TASKS: TaskType[] = [
+    { id: 1, title: "Conception UI",   description: "", estimatedTime: 90,  creationDate: new Date(), startDate: new Date(), timeSpent: 5700, endDate: new Date(), status: Status.FINISHED },
+    { id: 2, title: "Intégration API", description: "", estimatedTime: 120, creationDate: new Date(), startDate: new Date(), timeSpent: 6900, endDate: new Date(), status: Status.FINISHED },
+    { id: 3, title: "Tests unitaires", description: "", estimatedTime: 60,  creationDate: new Date(), startDate: new Date(), timeSpent: 2100, endDate: new Date(), status: Status.FINISHED },
+    { id: 4, title: "Documentation",   description: "", estimatedTime: 45,  creationDate: new Date(), startDate: new Date(), timeSpent: 0,    endDate: new Date(), status: Status.PENDING  },
+    { id: 5, title: "Refactoring",     description: "", estimatedTime: 30,  creationDate: new Date(), startDate: new Date(), timeSpent: 2520, endDate: new Date(), status: Status.PENDING  },
 ];
 
 const POMODORO_DURATION = 25 * 60;

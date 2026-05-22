@@ -10,7 +10,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardPage from "./app/dashboard/DashboardPage";
-import ParamsPage from "./app/SettingsPage";
+import ParamsPage from "./app/setting/SettingsPage";
 import { LandingPage } from "./app/landing/LandingPage";
 
 // Check to avoid multiple calls
