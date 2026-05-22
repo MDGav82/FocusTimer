@@ -6,4 +6,3 @@ out
 *.md
 .env*
 modelisation/
-build.ts
