@@ -5,7 +5,7 @@ export interface ICycle {
      * Create a new cycle
      * @param cycle the cycle to create
      */
-    createCycle(cycle: Cycle): Promise<void>
+    createCycle(cycle: Cycle): Promise<number>
 
     /**
      * Get all cycles for a given user

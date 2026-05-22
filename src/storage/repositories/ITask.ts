@@ -5,7 +5,7 @@ export interface ITask {
      * Create a task
      * @param task the task to create
      */
-    createTask(task: Task): Promise<void>
+    createTask(task: Task): Promise<number>
 
     /**
      * Get all tasks for a given user

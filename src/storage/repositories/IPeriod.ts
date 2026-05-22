@@ -6,7 +6,7 @@ export interface IPeriod {
      * Create a new period
      * @param period the period to create
      */
-    createPeriod(period: Period): Promise<void>
+    createPeriod(period: Period): Promise<number>
 
     /**
      * Update the period's time
