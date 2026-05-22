@@ -10,7 +10,7 @@ export class Task implements StorableInstance {
     static readonly storeName: string = 'task';
     static readonly keyPath: string = 'id';
     static readonly indexes?: IndexDefinition[] = [
-        {name: "by_id", keyPath: "id", options: {unique: true}}
+        { name: "by_id", keyPath: "id", options: { unique: true } }
     ];
 
     constructor(

@@ -5,7 +5,7 @@ export class Cycle implements StorableInstance {
     static readonly storeName: string = 'cycle';
     static readonly keyPath: string = 'id';
     static readonly indexes?: IndexDefinition[] = [
-        {name: "by_id", keyPath: "id", options: {unique: true}}
+        { name: "by_id", keyPath: "id", options: { unique: true } }
     ];
 
     constructor(

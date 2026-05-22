@@ -5,7 +5,7 @@ export class Period implements StorableInstance {
     static readonly storeName: string = 'period';
     static readonly keyPath: string = 'id';
     static readonly indexes?: IndexDefinition[] = [
-        {name: "by_id", keyPath: "id", options: {unique: true}}
+        { name: "by_id", keyPath: "id", options: { unique: true } }
     ];
 
     constructor(
