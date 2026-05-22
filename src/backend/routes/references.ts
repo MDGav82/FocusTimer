@@ -1,25 +1,23 @@
+import { Elysia } from "elysia";
 import { db } from "../db";
 
-export const referenceRoutes = {
-  "/api/status": {
-    async GET() {
-      try {
-        const statuses = await db`SELECT id, name FROM status ORDER BY id ASC`;
-        return Response.json(statuses);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
+// Public routes — no auth required
+export const referenceRoutes = new Elysia()
 
-  "/api/type_periode": {
-    async GET() {
-      try {
-        const types = await db`SELECT id, name FROM type_periode ORDER BY id ASC`;
-        return Response.json(types);
-      } catch {
-        return Response.json({ error: "Internal server error" }, { status: 500 });
-      }
-    },
-  },
-};
+  .get("/api/status", async ({ set }) => {
+    try {
+      return await db`SELECT id, name FROM status ORDER BY id ASC`;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  })
+
+  .get("/api/type_periode", async ({ set }) => {
+    try {
+      return await db`SELECT id, name FROM type_periode ORDER BY id ASC`;
+    } catch {
+      set.status = 500;
+      return { error: "Internal server error" };
+    }
+  });

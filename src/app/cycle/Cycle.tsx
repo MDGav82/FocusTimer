@@ -1,20 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+// Importation du modèle global Cycle
+import { Cycle as CycleModel } from "@/model/Cycle";
 import CycleSelect from "./CycleSelect";
 
-interface Period {
-  name: string;
-  type: "work" | "short_break" | "long_break";
-  duration: number;
-}
-
 interface CycleProps {
-  currentCycleName: string;
-  periods: Period[];
+  currentCycle: CycleModel;
   currentPeriodIndex: number;
 }
 
-export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CycleProps) {
+const PERIOD_LABELS: Record<string, string> = {
+  work: "Travail",
+  break: "Pause",
+};
+
+export function Cycle({ currentCycle, currentPeriodIndex }: CycleProps) {
+  const currentCycleName = currentCycle?.name ?? "Cycle sans nom";
+  const periods = currentCycle?.periods ?? [];
+
   return (
     <div className="bg-slate-800/40 border border-amber-500/20 p-5 rounded-2xl shadow-xl">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
@@ -26,7 +29,9 @@ export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CyclePr
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">Sélectionner un cycle</Button>
+            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">
+              Sélectionner un cycle
+            </Button>
           </DialogTrigger>
                <DialogContent>
             <DialogHeader>
@@ -52,16 +57,28 @@ export function Cycle({ currentCycleName, periods, currentPeriodIndex }: CyclePr
             const isCurrent = idx === currentPeriodIndex;
             let badgeColor = "bg-slate-800 text-slate-400 border-slate-700";
             
-            if (isCurrent) {
-              if (p.type === "work") badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105";
-              else if (p.type === "short_break") badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105";
-              else badgeColor = "bg-amber-500/20 text-amber-400 border-amber-500/50 font-bold scale-105";
+            // Normalisation : si la chaîne contient "break", on la considère comme une pause globale
+            let currentType = String(p.typePeriode || "");
+            if (currentType.includes("break")) {
+              currentType = "break";
             }
 
+            // 2. Simplification des styles de badges (Travail vs Pause)
+            if (isCurrent) {
+              if (currentType === "work") {
+                badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105";
+              } else {
+                badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105";
+              }
+            }
+
+            const displayName = PERIOD_LABELS[currentType] || currentType || "Période";
+            const displayMinutes = p.time ? Math.round(p.time / 60) : 0;
+
             return (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={p.id ?? idx} className="flex items-center gap-2">
                 <span className={`px-2.5 py-1 rounded-lg border transition-all duration-300 ${badgeColor}`}>
-                  {p.name} ({p.duration / 60}m)
+                  {displayName} ({displayMinutes}m)
                 </span>
                 {idx < periods.length - 1 && <span className="text-slate-600">➔</span>}
               </div>
