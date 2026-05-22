@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 // Importation du modèle global Cycle
 import { Cycle as CycleModel } from "@/model/Cycle";
+import CycleSelect from "./CycleSelect";
 
 interface CycleProps {
+  cycles: CycleModel[];
   currentCycle: CycleModel;
   currentPeriodIndex: number;
 }
@@ -32,13 +34,14 @@ export function Cycle({ currentCycle, currentPeriodIndex }: CycleProps) {
               Sélectionner un cycle
             </Button>
           </DialogTrigger>
-          <DialogContent>
+               <DialogContent>
             <DialogHeader>
-              <DialogTitle>Sélectionner un cycle</DialogTitle>
+              <DialogTitle>Vos cycles</DialogTitle>
               <DialogDescription>
                 Choisissez le cycle de travail que vous souhaitez utiliser.
               </DialogDescription>
             </DialogHeader>
+            <CycleSelect/>
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline">Fermer</Button>
