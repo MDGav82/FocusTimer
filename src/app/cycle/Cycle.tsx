@@ -10,7 +10,9 @@ interface CycleProps {
   currentCycle: CycleModel;
   currentPeriodIndex: number;
   onDeleteCycle?: (id: number) => void;
-  onUpdateCycle?: (id: number, updatedPeriods: any[]) => void; // Nouvelle prop pour la synchro
+  onUpdateCycle?: (id: number, updatedPeriods: any[]) => void;
+  onDuplicateCycle?: (id: number) => void; // Nouvelle prop
+  onCreateCycle?: () => void; // Nouvelle prop
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -18,14 +20,19 @@ const PERIOD_LABELS: Record<string, string> = {
   break: "Pause",
 };
 
-export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle, onUpdateCycle }: CycleProps) {
+export function Cycle({ 
+  cycles, 
+  currentCycle, 
+  currentPeriodIndex, 
+  onDeleteCycle, 
+  onUpdateCycle,
+  onDuplicateCycle,
+  onCreateCycle 
+}: CycleProps) {
   const currentCycleName = currentCycle?.name ?? "Cycle sans nom";
   const periods = currentCycle?.periods ?? [];
 
-  // État pour suivre quel cycle est en train d'être modifié (menu drag-down)
   const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
-  
-  // Permet de gérer localement les périodes du cycle en cours d'édition
   const [localPeriods, setLocalPeriods] = useState<any[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -39,7 +46,6 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
     }
   };
 
-  // Gestionnaires pour la mise à jour des valeurs des inputs avec callback de synchro parent
   const handleUpdatePeriodType = (idx: number, type: string) => {
     const updated = [...localPeriods];
     updated[idx] = { ...updated[idx], typePeriode: type };
@@ -58,7 +64,6 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
     }
   };
 
-  // Supprimer une période spécifique
   const handleDeletePeriod = (idx: number) => {
     const updated = localPeriods.filter((_, i) => i !== idx);
     setLocalPeriods(updated);
@@ -67,10 +72,9 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
     }
   };
 
-  // Ajouter une nouvelle période par défaut (Travail : 25 min)
   const handleAddPeriod = () => {
     const newPeriod = {
-      id: Date.now(), // ID unique temporaire
+      id: Date.now(),
       index: localPeriods.length,
       typePeriode: "work",
       time: 25 * 60,
@@ -82,7 +86,6 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
     }
   };
 
-  // Fonctions pour le Drag and Drop natif HTML5
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -136,8 +139,8 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {}} 
-                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20 font-semibold"
+                onClick={() => onCreateCycle && onCreateCycle()} 
+                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20 font-semibold transition active:scale-95"
               >
                 Ajouter un cycle
               </Button>
@@ -195,8 +198,8 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {}}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs h-8 w-full"
+                          onClick={() => onDuplicateCycle && onDuplicateCycle(cycle.id)}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs h-8 w-full transition active:scale-95"
                         >
                           Dupliquer le cycle
                         </Button>
@@ -218,7 +221,7 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
                           variant="outline" 
                           size="sm"
                           onClick={() => onDeleteCycle && onDeleteCycle(cycle.id)}
-                          className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs h-8 font-medium w-full justify-center"
+                          className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs h-8 font-medium w-full justify-center shadow-sm"
                         >
                           Supprimer le cycle
                         </Button>
@@ -284,7 +287,7 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDeletePeriod(idx)}
-                                  className="h-7 w-7 p-0 text-rose-400/70 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                  className="h-7 w-7 p-0 text-rose-400/70 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
                                   title="Supprimer la période"
                                 >
                                   ✕
@@ -299,7 +302,7 @@ export function Cycle({ cycles, currentCycle, currentPeriodIndex, onDeleteCycle,
                           <Button
                             type="button"
                             onClick={handleAddPeriod}
-                            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-bold px-4 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-bold px-4 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95"
                           >
                             <span className="text-sm font-extrabold">+</span> Ajouter une période
                           </Button>
