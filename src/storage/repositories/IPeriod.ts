@@ -1,5 +1,4 @@
 import { Period } from "@/model/Period.ts";
-import { PeriodType } from "@/model/PeriodType.ts";
 import type {Cycle} from "@/model/Cycle.ts";
 
 export interface IPeriod {
