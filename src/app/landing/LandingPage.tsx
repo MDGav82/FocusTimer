@@ -20,7 +20,6 @@ export function LandingPage() {
   
   const currentPeriod: Period = (periods[currentPeriodIndex] ?? periods[0])!;
 
-  // Conversion du mock brut en state éditable
   const [cycles, setCycles] = useState<CycleType[]>([
     {
       id: 1,
@@ -39,7 +38,6 @@ export function LandingPage() {
     }
   ]);
 
-  // Rendre dynamique le cycle courant par rapport au premier élément de notre liste de cycles
   const currentCycleMock: CycleModel = {
     id: cycles[0]?.id ?? 1,
     name: cycles[0]?.name ?? "Cycle par Défaut",
@@ -56,7 +54,6 @@ export function LandingPage() {
 
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
-  // Calculs des temps de session basés sur le cycle actif actuel
   const activePeriods = cycles[0]?.periods ?? periods;
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
   const getElapsedBeforeCurrent = (index: number) => {
@@ -75,19 +72,47 @@ export function LandingPage() {
     setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
   };
 
-  // Nouvelle fonction pour propager en temps réel les changements des périodes d'un cycle
   const handleUpdateCycle = (id: number, updatedPeriods: Period[]) => {
     setCycles((prevCycles) =>
       prevCycles.map((c) => (c.id === id ? { ...c, periods: updatedPeriods } : c))
     );
-    // Si c'est le cycle actif actuellement affiché sur le tableau de bord, on met à jour la timeline principale
     if (id === cycles[0]?.id) {
       setPeriods(updatedPeriods);
-      // Réinitialise l'index courant si la liste a raccourci pour éviter les index hors-bornes
       if (currentPeriodIndex >= updatedPeriods.length) {
         setCurrentPeriodIndex(0);
       }
     }
+  };
+
+  // Nouvelle fonction : Dupliquer un cycle existant
+  const handleDuplicateCycle = (id: number) => {
+    const cycleToDuplicate = cycles.find((c) => c.id === id);
+    if (!cycleToDuplicate) return;
+
+    const newCycle: CycleType = {
+      id: Date.now(), // ID unique
+      name: `${cycleToDuplicate.name} (Copie)`,
+      // On clone profondément les périodes en changeant l'id pour éviter les conflits de clés
+      periods: cycleToDuplicate.periods.map((p, idx) => ({
+        ...p,
+        id: Date.now() + idx + Math.random(),
+      })),
+    };
+
+    setCycles((prevCycles) => [...prevCycles, newCycle]);
+  };
+
+  // Nouvelle fonction : Créer un tout nouveau cycle avec configuration par défaut (Travail 25m, Pause 5m)
+  const handleCreateCycle = () => {
+    const newCycle: CycleType = {
+      id: Date.now(),
+      name: `Cycle ${cycles.length + 1}`,
+      periods: [
+        { id: Date.now() + 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
+        { id: Date.now() + 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
+      ],
+    };
+    setCycles((prevCycles) => [...prevCycles, newCycle]);
   };
 
   const handleTick = () => {
@@ -116,17 +141,7 @@ export function LandingPage() {
   };
 
   const handleAddTask = (title: string, hours: number) => {
-    const newTask = new Task(
-      Date.now(),
-      title,
-      "",
-      hours,
-      new Date(),
-      new Date(),
-      0,
-      new Date(),
-      Status.PENDING
-    );
+    const newTask = new Task(Date.now(), title, "", hours, new Date(), new Date(), 0, new Date(), Status.PENDING);
     setTasks([...tasks, newTask]);
   };
 
@@ -150,26 +165,12 @@ export function LandingPage() {
       prevTasks.map((task) => {
         if (task.id === id) {
           const isCurrentlyCompleted = task.status === Status.FINISHED;
-          const newStatus = isCurrentlyCompleted 
-            ? (task.timeSpent > 0 ? Status.PROGRESS : Status.PENDING) 
-            : Status.FINISHED;
-          
-          return new Task(
-            task.id,
-            task.title,
-            task.description,
-            task.estimatedTime,
-            task.creationDate,
-            task.startDate,
-            task.timeSpent,
-            task.endDate,
-            newStatus
-          );
+          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? Status.PROGRESS : Status.PENDING) : Status.FINISHED;
+          return new Task(task.id, task.title, task.description, task.estimatedTime, task.creationDate, task.startDate, task.timeSpent, task.endDate, newStatus);
         }
         return task;
       })
     );
-
     if (selectedTaskId === id) {
       setSelectedTaskId(null);
     }
@@ -192,6 +193,8 @@ export function LandingPage() {
         cycles={cycles}
         onDeleteCycle={handleDeleteCycle}
         onUpdateCycle={handleUpdateCycle}
+        onDuplicateCycle={handleDuplicateCycle}
+        onCreateCycle={handleCreateCycle}
       />
       
       <Tasks 
