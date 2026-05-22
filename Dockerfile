@@ -1,18 +1,23 @@
-FROM oven/bun:1-alpine AS base
-WORKDIR /temp/
+FROM oven/bun:1.3-slim AS deps
+WORKDIR /app
+COPY package.json bun.lock bunfig.toml ./
+RUN bun install --frozen-lockfile
 
-FROM base AS install
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+FROM oven/bun:1.3-slim AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bunfig.toml tsconfig.json bun-env.d.ts build.ts ./
+COPY src/ ./src/
+COPY lib/ ./lib/
+RUN bun run build.ts
+RUN bun build --compile \
+      --define 'process.env.NODE_ENV="production"' \
+      --outfile server \
+      src/index.ts
 
-FROM base AS builder
-COPY --from=install /temp/node_modules node_modules
-COPY . .
-
-ENV NODE_ENV=production
-RUN bun run build
-
-FROM nginx:alpine
-COPY --from=builder /temp/dist /usr/share/nginx/html
-
-EXPOSE 80
+FROM gcr.io/distroless/cc-debian12:nonroot AS runner
+WORKDIR /app
+COPY --from=builder --chown=65532:65532 /app/server ./server
+COPY --from=builder --chown=65532:65532 /app/dist ./dist
+EXPOSE 3000
+CMD ["/app/server"]
