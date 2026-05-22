@@ -5,6 +5,7 @@ import { Cycle as CycleModel } from "@/model/Cycle";
 import CycleSelect from "./CycleSelect";
 
 interface CycleProps {
+  cycles: CycleModel[];
   currentCycle: CycleModel;
   currentPeriodIndex: number;
 }

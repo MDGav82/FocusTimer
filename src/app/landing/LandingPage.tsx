@@ -2,18 +2,18 @@ import { useState } from "react";
 import { Timer } from "./Timer";
 import { Cycle } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
-
 import type { Period } from "@/model/Period";
-import type { PeriodType } from "@/model/PeriodType";
+import type { PType } from "@/model/Period";
 import { Cycle as CycleModel } from "@/model/Cycle";
 import { Task, Status } from "@/model/Task";
+import { type CycleType } from "@/model/Cycle";
 
 export function LandingPage() {
   const [periods] = useState<Period[]>([
-    { id: 1, index: 0, typePeriode: "work" as unknown as PeriodType, time: 25 * 60 },
-    { id: 2, index: 1, typePeriode: "break" as unknown as PeriodType, time: 5 * 60 },
-    { id: 3, index: 2, typePeriode: "work" as unknown as PeriodType, time: 25 * 60 },
-    { id: 4, index: 3, typePeriode: "break" as unknown as PeriodType, time: 15 * 60 },
+    { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
+    { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
+    { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
+    { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
   ]);
 
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
@@ -27,6 +27,20 @@ export function LandingPage() {
     storeName: 'cycle',
     keyPath: 'id'
   } as unknown as CycleModel;
+
+  const cyclesMock: CycleType[] = [{
+        id: 1,
+    name: "Cycle par Défaut",
+    periods: periods,
+  }, {
+        id: 2,
+    name: "Cycle 2",
+    periods: [],
+  }, {
+        id: 3,
+    name: "Cycle 3",
+    periods: [],
+  }];
 
   const [tasks, setTasks] = useState<Task[]>([
     new Task(1, "Tâche par défaut uno", "Description 1", 1800, new Date(), new Date(), 1200, new Date(), Status.PROGRESS),
@@ -149,6 +163,7 @@ export function LandingPage() {
       <Cycle 
         currentCycle={currentCycleMock}
         currentPeriodIndex={currentPeriodIndex}
+        cycles={cyclesMock}
       />
       
       {/* Liste des tâches */}
