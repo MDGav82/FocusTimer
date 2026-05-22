@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Period } from "@/model/Period";
+import { Button } from "@/components/ui/button";
 
 interface TimerProps {
   currentPeriod: Period;
@@ -59,7 +60,6 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
     }
   };
 
-  // Récupération du joli nom de la période en français
   const displayName = PERIOD_LABELS[String(currentPeriod.typePeriode)] || "Période";
 
   return (
@@ -85,24 +85,42 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
         </div>
       </div>
 
+      {/* 123 */}
       <div className="grid grid-cols-4 gap-2.5">
-        <button onClick={onPrevious} className="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 px-2 rounded-xl font-medium text-xs transition active:scale-95">
+        <Button 
+          variant="outline"
+          size="lg"
+          onClick={onPrevious} 
+          className="bg-slate-700 hover:bg-slate-600 text-slate-200 border-transparent text-xs font-medium rounded-xl h-auto py-2.5 px-2"
+        >
           Précédent
-        </button>
-        <button onClick={handleReset} className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 py-2.5 px-2 rounded-xl font-medium text-xs transition active:scale-95">
+        </Button>
+        <Button 
+          variant="outline"
+          size="lg"
+          onClick={handleReset} 
+          className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/30 text-xs font-medium rounded-xl h-auto py-2.5 px-2"
+        >
           Reset
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="default"
+          size="lg"
           onClick={() => setIsActive(!isActive)}
           className={`${
             isActive ? "bg-amber-500 hover:bg-amber-400 text-slate-950" : "bg-emerald-500 hover:bg-emerald-400 text-slate-950"
-          } py-2.5 px-2 rounded-xl font-bold text-xs shadow-lg transition active:scale-95`}
+          } text-xs font-bold rounded-xl shadow-lg h-auto py-2.5 px-2`}
         >
           {isActive ? "Pause" : "Lancer"}
-        </button>
-        <button onClick={onNext} className="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 px-2 rounded-xl font-medium text-xs transition active:scale-95">
+        </Button>
+        <Button 
+          variant="outline"
+          size="lg"
+          onClick={onNext} 
+          className="bg-slate-700 hover:bg-slate-600 text-slate-200 border-transparent text-xs font-medium rounded-xl h-auto py-2.5 px-2"
+        >
           Suivant
-        </button>
+        </Button>
       </div>
     </div>
   );
