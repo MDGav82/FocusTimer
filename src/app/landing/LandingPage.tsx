@@ -9,6 +9,9 @@ import { Task, Status } from "@/model/Task";
 import { type CycleType } from "@/model/Cycle";
 
 export function LandingPage() {
+  // Période de secours globale au cas où un cycle se retrouverait sans période
+  const defaultFallbackPeriod: Period = { id: 999, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 };
+
   const [periods, setPeriods] = useState<Period[]>([
     { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
     { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
@@ -18,29 +21,42 @@ export function LandingPage() {
 
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
   
-  const currentPeriod: Period = (periods[currentPeriodIndex] ?? periods[0])!;
+  // Sécurisation : Si la période à l'index actuel n'existe pas, on prend la première du tableau. Si le tableau est vide, on prend la période de secours.
+  const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? defaultFallbackPeriod;
 
+  // Correction de l'état initial : On donne des périodes de base à tous les cycles pour éviter l'état vide au démarrage
   const [cycles, setCycles] = useState<CycleType[]>([
     {
       id: 1,
       name: "Cycle par Défaut",
-      periods: periods,
+      periods: [
+        { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
+        { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
+        { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
+        { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
+      ],
     }, 
     {
       id: 2,
       name: "Cycle 2",
-      periods: [],
+      periods: [
+        { id: 201, index: 0, typePeriode: "work" as unknown as PType, time: 50 * 60 },
+        { id: 202, index: 1, typePeriode: "break" as unknown as PType, time: 10 * 60 },
+      ],
     }, 
     {
       id: 3,
       name: "Cycle 3",
-      periods: [],
+      periods: [
+        { id: 301, index: 0, typePeriode: "work" as unknown as PType, time: 90 * 60 },
+        { id: 302, index: 1, typePeriode: "break" as unknown as PType, time: 20 * 60 },
+      ],
     }
   ]);
 
   const currentCycleMock: CycleModel = {
     id: cycles[0]?.id ?? 1,
-    name: cycles[0]?.name ?? "Cycle par Défaut",
+    name: cycles[0]?.name ?? "Cycle sans nom",
     periods: cycles[0]?.periods ?? periods,
     storeName: 'cycle',
     keyPath: 'id'
@@ -61,10 +77,12 @@ export function LandingPage() {
   };
 
   const nextPeriod = () => {
+    if (activePeriods.length === 0) return;
     setCurrentPeriodIndex((prevIndex) => (prevIndex + 1) % activePeriods.length);
   };
 
   const previousPeriod = () => {
+    if (activePeriods.length === 0) return;
     setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + activePeriods.length) % activePeriods.length);
   };
 
@@ -72,9 +90,13 @@ export function LandingPage() {
     setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
   };
 
-  const handleUpdateCycle = (id: number, updatedPeriods: Period[]) => {
+  const handleUpdateCycle = (id: number, updatedPeriods: Period[], newName?: string) => {
     setCycles((prevCycles) =>
-      prevCycles.map((c) => (c.id === id ? { ...c, periods: updatedPeriods } : c))
+      prevCycles.map((c) => 
+        c.id === id 
+          ? { ...c, periods: updatedPeriods, name: newName ?? c.name } 
+          : c
+      )
     );
     if (id === cycles[0]?.id) {
       setPeriods(updatedPeriods);
@@ -84,15 +106,13 @@ export function LandingPage() {
     }
   };
 
-  // Nouvelle fonction : Dupliquer un cycle existant
   const handleDuplicateCycle = (id: number) => {
     const cycleToDuplicate = cycles.find((c) => c.id === id);
     if (!cycleToDuplicate) return;
 
     const newCycle: CycleType = {
-      id: Date.now(), // ID unique
+      id: Date.now(),
       name: `${cycleToDuplicate.name} (Copie)`,
-      // On clone profondément les périodes en changeant l'id pour éviter les conflits de clés
       periods: cycleToDuplicate.periods.map((p, idx) => ({
         ...p,
         id: Date.now() + idx + Math.random(),
@@ -102,7 +122,6 @@ export function LandingPage() {
     setCycles((prevCycles) => [...prevCycles, newCycle]);
   };
 
-  // Nouvelle fonction : Créer un tout nouveau cycle avec configuration par défaut (Travail 25m, Pause 5m)
   const handleCreateCycle = () => {
     const newCycle: CycleType = {
       id: Date.now(),
@@ -113,6 +132,24 @@ export function LandingPage() {
       ],
     };
     setCycles((prevCycles) => [...prevCycles, newCycle]);
+  };
+
+  const handleSelectCycle = (id: number) => {
+    const targetCycle = cycles.find((c) => c.id === id);
+    if (!targetCycle) return;
+    
+    const remainingCycles = cycles.filter((c) => c.id !== id);
+    const updatedCycles = [targetCycle, ...remainingCycles];
+    
+    setCycles(updatedCycles);
+    
+    // Si le cycle sélectionné possède des périodes, on les applique, sinon on met une période par défaut
+    const newPeriods = targetCycle.periods && targetCycle.periods.length > 0 
+      ? targetCycle.periods 
+      : [defaultFallbackPeriod];
+
+    setPeriods(newPeriods);
+    setCurrentPeriodIndex(0); 
   };
 
   const handleTick = () => {
@@ -195,6 +232,7 @@ export function LandingPage() {
         onUpdateCycle={handleUpdateCycle}
         onDuplicateCycle={handleDuplicateCycle}
         onCreateCycle={handleCreateCycle}
+        onSelectCycle={handleSelectCycle}
       />
       
       <Tasks 
