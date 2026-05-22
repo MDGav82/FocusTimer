@@ -1,24 +1,23 @@
-FROM oven/bun:1.3-alpine AS deps
+FROM oven/bun:1.3-slim AS deps
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.3 AS builder
+FROM oven/bun:1.3-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bunfig.toml tsconfig.json bun-env.d.ts ./
+COPY package.json bunfig.toml tsconfig.json bun-env.d.ts build.ts ./
 COPY src/ ./src/
 COPY lib/ ./lib/
-RUN bun build --compile --minify src/index.ts --outfile=/app/focustimer
+RUN bun run build.ts
+RUN bun build --compile \
+      --define 'process.env.NODE_ENV="production"' \
+      --outfile server \
+      src/index.ts
 
-FROM debian:bookworm-slim AS runner
+FROM gcr.io/distroless/cc-debian12:nonroot AS runner
 WORKDIR /app
-ENV NODE_ENV=production
-
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-COPY --from=builder /app/focustimer ./focustimer
-RUN chown appuser:appuser ./focustimer
-
-USER appuser
+COPY --from=builder --chown=65532:65532 /app/server ./server
+COPY --from=builder --chown=65532:65532 /app/dist ./dist
 EXPOSE 3000
-CMD ["./focustimer"]
+CMD ["/app/server"]

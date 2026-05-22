@@ -9,7 +9,6 @@ import { historyRoutes } from "./backend/routes/history";
 import { referenceRoutes } from "./backend/routes/references";
 import { swaggerRoutes } from "./backend/swagger";
 
-// All API routes handled by Elysia
 const api = new Elysia()
   .use(authRoutes)
   .use(userRoutes)
@@ -19,19 +18,39 @@ const api = new Elysia()
   .use(referenceRoutes)
   .use(swaggerRoutes);
 
-// Bun serves the React frontend with HMR, and delegates /api/* to Elysia
+const isProd = process.env.NODE_ENV === "production";
+
+
 const server = serve({
   routes: {
     "/api/*": (req: Request) => api.handle(req),
     "/api-docs": (req: Request) => api.handle(req),
     "/api-docs/*": (req: Request) => api.handle(req),
-    "/*": index,
-  },
+    "/*": isProd
+      ? async (req: Request) => {
+          const url = new URL(req.url);
+          const filePath = `./dist${url.pathname}`;
+          const file = Bun.file(filePath);
+          const exists = url.pathname !== "/" && (await file.exists());
 
-  development: process.env.NODE_ENV !== "production" && {
-    hmr: true,
-    console: true,
+          if (exists) {
+            return new Response(file, {
+              headers: {
+                "Cache-Control": "public, max-age=31536000, immutable",
+              },
+            });
+          }
+
+          return new Response(Bun.file("./dist/index.html"), {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+            },
+          });
+        }
+      : index,
   },
+  development: !isProd && { hmr: true, console: true },
 });
 
 console.log(`🚀 Server running at ${server.url}`);
