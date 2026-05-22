@@ -9,7 +9,7 @@ import { Task, Status } from "@/model/Task";
 import { type CycleType } from "@/model/Cycle";
 
 export function LandingPage() {
-  const [periods] = useState<Period[]>([
+  const [periods, setPeriods] = useState<Period[]>([
     { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
     { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
     { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
@@ -20,27 +20,33 @@ export function LandingPage() {
   
   const currentPeriod: Period = (periods[currentPeriodIndex] ?? periods[0])!;
 
+  // Conversion du mock brut en state éditable
+  const [cycles, setCycles] = useState<CycleType[]>([
+    {
+      id: 1,
+      name: "Cycle par Défaut",
+      periods: periods,
+    }, 
+    {
+      id: 2,
+      name: "Cycle 2",
+      periods: [],
+    }, 
+    {
+      id: 3,
+      name: "Cycle 3",
+      periods: [],
+    }
+  ]);
+
+  // Rendre dynamique le cycle courant par rapport au premier élément de notre liste de cycles
   const currentCycleMock: CycleModel = {
-    id: 1,
-    name: "Cycle par Défaut",
-    periods: periods,
+    id: cycles[0]?.id ?? 1,
+    name: cycles[0]?.name ?? "Cycle par Défaut",
+    periods: cycles[0]?.periods ?? periods,
     storeName: 'cycle',
     keyPath: 'id'
   } as unknown as CycleModel;
-
-  const cyclesMock: CycleType[] = [{
-        id: 1,
-    name: "Cycle par Défaut",
-    periods: periods,
-  }, {
-        id: 2,
-    name: "Cycle 2",
-    periods: [],
-  }, {
-        id: 3,
-    name: "Cycle 3",
-    periods: [],
-  }];
 
   const [tasks, setTasks] = useState<Task[]>([
     new Task(1, "Tâche par défaut uno", "Description 1", 1800, new Date(), new Date(), 1200, new Date(), Status.PROGRESS),
@@ -50,18 +56,38 @@ export function LandingPage() {
 
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
-  // Calculs des temps de session
-  const totalSessionTime = periods.reduce((acc, p) => acc + (p.time ?? 0), 0);
+  // Calculs des temps de session basés sur le cycle actif actuel
+  const activePeriods = cycles[0]?.periods ?? periods;
+  const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
   const getElapsedBeforeCurrent = (index: number) => {
-    return periods.slice(0, index).reduce((acc, p) => acc + (p.time ?? 0), 0);
+    return activePeriods.slice(0, index).reduce((acc, p) => acc + (p.time ?? 0), 0);
   };
 
   const nextPeriod = () => {
-    setCurrentPeriodIndex((prevIndex) => (prevIndex + 1) % periods.length);
+    setCurrentPeriodIndex((prevIndex) => (prevIndex + 1) % activePeriods.length);
   };
 
   const previousPeriod = () => {
-    setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + periods.length) % periods.length);
+    setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + activePeriods.length) % activePeriods.length);
+  };
+
+  const handleDeleteCycle = (id: number) => {
+    setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
+  };
+
+  // Nouvelle fonction pour propager en temps réel les changements des périodes d'un cycle
+  const handleUpdateCycle = (id: number, updatedPeriods: Period[]) => {
+    setCycles((prevCycles) =>
+      prevCycles.map((c) => (c.id === id ? { ...c, periods: updatedPeriods } : c))
+    );
+    // Si c'est le cycle actif actuellement affiché sur le tableau de bord, on met à jour la timeline principale
+    if (id === cycles[0]?.id) {
+      setPeriods(updatedPeriods);
+      // Réinitialise l'index courant si la liste a raccourci pour éviter les index hors-bornes
+      if (currentPeriodIndex >= updatedPeriods.length) {
+        setCurrentPeriodIndex(0);
+      }
+    }
   };
 
   const handleTick = () => {
@@ -163,10 +189,11 @@ export function LandingPage() {
       <Cycle 
         currentCycle={currentCycleMock}
         currentPeriodIndex={currentPeriodIndex}
-        cycles={cyclesMock}
+        cycles={cycles}
+        onDeleteCycle={handleDeleteCycle}
+        onUpdateCycle={handleUpdateCycle}
       />
       
-      {/* Liste des tâches */}
       <Tasks 
         tasks={tasks} 
         selectedTaskId={selectedTaskId}
