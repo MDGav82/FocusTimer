@@ -1,11 +1,10 @@
 import { Cycle } from "@/model/Cycle";
 import { Period } from "@/model/Period";
-import { PeriodType } from "@/model/PeriodType";
 import { Task, Status } from "@/model/Task";
 import type { IStore } from "@/storage/IStore.ts";
 
 export class RemoteStore implements IStore {
-    private baseUrl: string = (process.env.DATABASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+    private baseUrl: string = (process.env.API_URL ?? "http://localhost:3000/").replace(/\/$/, "");
     private defaultUserId: number = 1;
 
 
@@ -30,15 +29,6 @@ export class RemoteStore implements IStore {
         }
 
         return response.json() as Promise<T>;
-    }
-
-
-    private mapStringToPeriodType(typeName: string): PeriodType {
-        const lowerName = typeName.toLowerCase();
-        if (lowerName === "work") {
-            return PeriodType.WORK;
-        }
-        return PeriodType.BREAK;
     }
 
     //TASK
@@ -159,13 +149,11 @@ export class RemoteStore implements IStore {
     }
 
     //PERIOD
-    async createPeriod(period: Period): Promise<number> {
-        const cycleId = "cycleId" in period ? (period as Record<string, number>).cycleId : 1; 
-
-        const createdPeriod = await this.request<Period>(`/api/cycles/${cycleId}/periods`, {
+    async createPeriod(period: Period, cycle: Cycle): Promise<number> {
+        const createdPeriod = await this.request<Period>(`/api/cycles/${cycle.id}/periods`, {
             method: "POST",
             body: JSON.stringify({
-                type_periode_id:  period.typePeriode.valueOf(),
+                type_periode_id: period.typePeriode.valueOf(),
                 time: period.time,
                 index: period.index
             }),
