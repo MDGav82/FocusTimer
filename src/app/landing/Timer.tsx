@@ -12,8 +12,7 @@ interface TimerProps {
 
 const PERIOD_LABELS: Record<string, string> = {
   work: "Travail",
-  short_break: "Courte Pause",
-  long_break: "Longue Pause",
+  break: "Pause",
 };
 
 export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, elapsedBeforeCurrent, onTick }: TimerProps) {
@@ -56,9 +55,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
   const getHeaderStyle = () => {
     switch (String(currentPeriod.typePeriode)) {
       case "work": return "text-rose-400 bg-rose-400/10";
-      case "short_break": return "text-cyan-400 bg-cyan-400/10";
-      case "long_break": return "text-amber-400 bg-amber-400/10";
-      default: return "text-slate-400 bg-slate-400/10";
+      default: return "text-cyan-400 bg-cyan-400/10";
     }
   };
 

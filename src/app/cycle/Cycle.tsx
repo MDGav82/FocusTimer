@@ -10,12 +10,10 @@ interface CycleProps {
 
 const PERIOD_LABELS: Record<string, string> = {
   work: "Travail",
-  short_break: "Courte Pause",
-  long_break: "Longue Pause",
+  break: "Pause",
 };
 
 export function Cycle({ currentCycle, currentPeriodIndex }: CycleProps) {
-  // On extrait proprement les données depuis l'instance de Cycle reçue
   const currentCycleName = currentCycle?.name ?? "Cycle sans nom";
   const periods = currentCycle?.periods ?? [];
 
@@ -57,12 +55,19 @@ export function Cycle({ currentCycle, currentPeriodIndex }: CycleProps) {
             const isCurrent = idx === currentPeriodIndex;
             let badgeColor = "bg-slate-800 text-slate-400 border-slate-700";
             
-            const currentType = String(p.typePeriode || "");
+            // Normalisation : si la chaîne contient "break", on la considère comme une pause globale
+            let currentType = String(p.typePeriode || "");
+            if (currentType.includes("break")) {
+              currentType = "break";
+            }
 
+            // 2. Simplification des styles de badges (Travail vs Pause)
             if (isCurrent) {
-              if (currentType === "work") badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105";
-              else if (currentType === "short_break") badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105";
-              else badgeColor = "bg-amber-500/20 text-amber-400 border-amber-500/50 font-bold scale-105";
+              if (currentType === "work") {
+                badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105";
+              } else {
+                badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105";
+              }
             }
 
             const displayName = PERIOD_LABELS[currentType] || currentType || "Période";

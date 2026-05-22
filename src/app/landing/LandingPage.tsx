@@ -11,9 +11,9 @@ import { Task, Status } from "@/model/Task";
 export function LandingPage() {
   const [periods] = useState<Period[]>([
     { id: 1, index: 0, typePeriode: "work" as unknown as PeriodType, time: 25 * 60 },
-    { id: 2, index: 1, typePeriode: "short_break" as unknown as PeriodType, time: 5 * 60 },
+    { id: 2, index: 1, typePeriode: "break" as unknown as PeriodType, time: 5 * 60 },
     { id: 3, index: 2, typePeriode: "work" as unknown as PeriodType, time: 25 * 60 },
-    { id: 4, index: 3, typePeriode: "long_break" as unknown as PeriodType, time: 15 * 60 },
+    { id: 4, index: 3, typePeriode: "break" as unknown as PeriodType, time: 15 * 60 },
   ]);
 
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
