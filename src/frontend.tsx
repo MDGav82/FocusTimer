@@ -9,7 +9,7 @@ import "./styles/globals.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DashboardPage from "./app/DashboardPage";
+import DashboardPage from "./app/dashboard/DashboardPage";
 import ParamsPage from "./app/SettingsPage";
 import { LandingPage } from "./app/landing/LandingPage";
 
