@@ -5,11 +5,14 @@ import type { IStore } from "@/storage/IStore.ts";
 
 export class RemoteStore implements IStore {
     //allow for url from env var
-    private baseUrl: string = (process.env.API_URL ?? "http://localhost:8080/api").replace(/\/$/, "");
+    private baseUrl: string = (process.env.DATABASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+    
+    // temp id for routes /api/users/:id/
+    // TODO: make it works with auth bs 👍
+    private defaultUserId: number = 1;
 
     constructor() {}
 
-    // Helper used to centralize Fetch calls
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             ...options,
@@ -20,7 +23,7 @@ export class RemoteStore implements IStore {
         });
 
         if (!response.ok) {
-            throw new Error(`[RemoteStore Error] ${options?.method || 'GET'} ${endpoint} failed with status ${response.status}`);
+            throw new Error(`[RemoteStore Error] ${options?.method || 'GET'} ${endpoint} failed (${response.status})`);
         }
 
         // if empty(204) fuck sending json 👍
@@ -32,125 +35,190 @@ export class RemoteStore implements IStore {
     }
 
     //task part
-    async createTask(task: Task): Promise<void> {
-        await this.request<void>("/tasks", {
+    async createTask(task: Task): Promise<number> {
+        const body = {
+            title: task.title,
+            description: task.description,
+            estimated_time: task.estimatedTime
+        };
+        const createdTask = await this.request<any>(`/api/users/${this.defaultUserId}/tasks`, {
             method: "POST",
-            body: JSON.stringify(task),
+            body: JSON.stringify(body),
         });
+        
+        return createdTask.id;
     }
 
     async getAllTasks(user_id: number): Promise<Task[]> {
-        return this.request<Task[]>(`/tasks?user_id=${user_id}`, {
+        const data = await this.request<any[]>(`/api/users/${user_id}/tasks`, {
             method: "GET",
         });
+        
+        return data.map(t => ({
+            ...t,
+            estimatedTime: t.estimated_time,
+            timeSpent: t.time_spent,
+            creationDate: new Date(t.creation_date),
+            startDate: t.start_date ? new Date(t.start_date) : null,
+            endDate: t.end_date ? new Date(t.end_date) : null,
+            status: t.status_name?.toUpperCase()
+        })) as unknown as Task[];
     }
 
     async updateTaskTitle(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}/title`, {
-            method: "PATCH",
+        await this.request<void>(`/api/tasks/${task.id}`, {
+            method: "PUT",
             body: JSON.stringify({ title: task.title }),
         });
     }
 
     async updateTaskDescription(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}/description`, {
-            method: "PATCH",
+        await this.request<void>(`/api/tasks/${task.id}`, {
+            method: "PUT",
             body: JSON.stringify({ description: task.description }),
         });
     }
 
     async startTask(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}/start`, {
-            method: "POST",
-            body: JSON.stringify({ startDate: task.startDate }),
+        await this.request<void>(`/api/tasks/${task.id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+                start_date: task.startDate ?? new Date().toISOString(),
+                status_id: 2
+            }),
         });
     }
 
     async progressTask(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}/progress`, {
+        await this.request<void>(`/api/tasks/${task.id}`, {
             method: "PUT",
-            body: JSON.stringify({ timeSpent: task.timeSpent, status: task.status }),
+            body: JSON.stringify({
+                time_spent: task.timeSpent
+            }),
         });
     }
 
     async endTask(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}/end`, {
-            method: "POST",
-            body: JSON.stringify({ endDate: task.endDate, status: task.status }),
+        await this.request<void>(`/api/tasks/${task.id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+                end_date: task.endDate ?? new Date().toISOString(),
+                status_id: 3
+            }),
         });
     }
 
     async deleteTask(task: Task): Promise<void> {
-        await this.request<void>(`/tasks/${task.id}`, {
+        await this.request<void>(`/api/tasks/${task.id}`, {
             method: "DELETE",
         });
     }
 
-
     //cycle part
-    async createCycle(cycle: Cycle): Promise<void> {
-        await this.request<void>("/cycles", {
+    async createCycle(cycle: Cycle): Promise<number> {
+        const periodsPayload = cycle.periods?.map(p => ({
+            type_periode_id: p.typePeriode === ("work" as any) ? 1 : 2,
+            time: p.time,
+            index: p.index
+        })) || [];
+
+        const createdCycle = await this.request<any>(`/api/users/${this.defaultUserId}/cycles`, {
             method: "POST",
-            body: JSON.stringify(cycle),
+            body: JSON.stringify({
+                name: cycle.name,
+                periods: periodsPayload
+            }),
         });
+
+        return createdCycle.id;
     }
 
     async getAllCycles(user_id: number): Promise<Cycle[]> {
-        return this.request<Cycle[]>(`/cycles?user_id=${user_id}`, {
+        const data = await this.request<any[]>(`/api/users/${user_id}/cycles`, {
             method: "GET",
         });
+
+        return data.map(c => ({
+            id: c.id,
+            name: c.name,
+            periods: c.periods?.map((p: any) => ({
+                id: p.id,
+                time: p.time,
+                index: p.index,
+                typePeriode: p.type_name
+            })) || []
+        })) as unknown as Cycle[];
     }
 
     async getCycle(cycle_id: number): Promise<Cycle> {
-        return this.request<Cycle>(`/cycles/${cycle_id}`, {
+        const c = await this.request<any>(`/api/cycles/${cycle_id}`, {
             method: "GET",
         });
+
+        return {
+            id: c.id,
+            name: c.name,
+            periods: c.periods?.map((p: any) => ({
+                id: p.id,
+                time: p.time,
+                index: p.index,
+                typePeriode: p.type_name
+            })) || []
+        } as unknown as Cycle;
     }
 
     async updateCycleName(cycle: Cycle): Promise<void> {
-        await this.request<void>(`/cycles/${cycle.id}/name`, {
-            method: "PATCH",
+        await this.request<void>(`/api/cycles/${cycle.id}`, {
+            method: "PUT",
             body: JSON.stringify({ name: cycle.name }),
         });
     }
 
     async deleteCycle(cycle: Cycle): Promise<void> {
-        await this.request<void>(`/cycles/${cycle.id}`, {
+        await this.request<void>(`/api/cycles/${cycle.id}`, {
             method: "DELETE",
         });
     }
 
-    
     //period part
-    async createPeriod(period: Period): Promise<void> {
-        await this.request<void>("/periods", {
+    async createPeriod(period: Period): Promise<number> {
+        const cycleId = (period as any).cycleId ?? 1; 
+
+        const createdPeriod = await this.request<any>(`/api/cycles/${cycleId}/periods`, {
             method: "POST",
-            body: JSON.stringify(period),
+            body: JSON.stringify({
+                type_periode_id: period.typePeriode === ("work" as any) ? 1 : 2,
+                time: period.time,
+                index: period.index
+            }),
         });
+
+        return createdPeriod.id;
     }
 
     async updatePeriodTime(period: Period): Promise<void> {
-        await this.request<void>(`/periods/${period.id}/time`, {
-            method: "PATCH",
+        await this.request<void>(`/api/periods/${period.id}`, {
+            method: "PUT",
             body: JSON.stringify({ time: period.time }),
         });
     }
 
     async updatePeriodIndex(period: Period): Promise<void> {
-        await this.request<void>(`/periods/${period.id}/index`, {
-            method: "PATCH",
+        await this.request<void>(`/api/periods/${period.id}`, {
+            method: "PUT",
             body: JSON.stringify({ index: period.index }),
         });
     }
 
     async deletePeriod(period: Period): Promise<void> {
-        await this.request<void>(`/periods/${period.id}`, {
+        await this.request<void>(`/api/periods/${period.id}`, {
             method: "DELETE",
         });
     }
 
+
     //mock for debugging
     mock(): void {
-        console.log(`[RemoteStore] Mocking active. Target API URL: ${this.baseUrl}`);
+        console.log(`[RemoteStore] Pointé sur l'API Elysia : ${this.baseUrl}`);
     }
 }
