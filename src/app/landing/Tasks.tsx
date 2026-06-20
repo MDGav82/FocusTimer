@@ -285,7 +285,7 @@ export function Tasks({
           </form>
         </DialogContent>
       </Dialog>
-
+-
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-sm">
           <DialogHeader>
@@ -337,18 +337,18 @@ export function Tasks({
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="bg-transparent border-t border-slate-700/50 pt-3 mt-5 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setEditingTask(null)}
-                className="text-slate-400 hover:bg-slate-700/50"
+                className="text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors"
               >
                 Fermer
               </Button>
               <Button
                 type="submit"
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/10"
               >
                 Sauvegarder
               </Button>

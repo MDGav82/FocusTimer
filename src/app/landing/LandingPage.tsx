@@ -214,7 +214,7 @@ export function LandingPage() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8">
+    <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
       <Timer 
         currentPeriod={currentPeriod} 
         onNext={nextPeriod} 
