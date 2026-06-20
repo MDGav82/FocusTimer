@@ -1,30 +1,19 @@
-import type { Parameters } from "./Parameters.ts";
-import type { Task } from "./Task.ts";
-import type { Cycle } from "./Cycle.ts";
-import type { History } from "./History.ts";
-import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
+import type { Parameters } from './Parameters.ts';
+import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {StoreOptions} from "@/storage/indexDb.ts";
 
-export type UserType = {
-  id: number;
-  email: string;
-  parameters: Parameters;
-  task: Task[];
-  cycle: Cycle[];
-  history: History[];
-};
-export class User implements StorableInstance {
-  static readonly storeName: string = "user";
-  static readonly keyPath: string = "id";
-  static readonly indexes?: IndexDefinition[] = [
-    { name: "by_id", keyPath: "id", options: { unique: true } },
-  ];
+export const UserStoreOptions: StoreOptions = {
+    name: 'user',
+    keyPath: 'id',
+    indexes: [
+        {name: "by_id", keyPath: "id", options: {unique: true}}
+    ]
+}
 
-  constructor(
-    public id: number,
-    public email: string,
-    public parameters: Parameters,
-    public task: Task[],
-    public cycle: Cycle[],
-    public history: History[],
-  ) {}
+export interface User extends BaseEntity {
+    email: string;
+    parameters: Parameters;
+    // tasks: Task[];
+    // cycle: Cycle[];
+    // history: History[];
 }

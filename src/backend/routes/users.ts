@@ -64,40 +64,6 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .get("/api/users/:id/parameters", async ({ params: { id }, set }) => {
-    try {
-      const [params] = await db`
-        SELECT p.*
-        FROM parameters p
-        JOIN users u ON u.parameters_id = p.id
-        WHERE u.id = ${id}
-      `;
-      if (!params) { set.status = 404; return { error: "User not found" }; }
-      return params;
-    } catch {
-      set.status = 500;
-      return { error: "Internal server error" };
-    }
-  })
-
-  .post("/api/users/:id/parameters", async ({ params: { id }, set }) => {
-    try {
-      const [existing] = await db`SELECT parameters_id FROM users WHERE id = ${id}`;
-      if (!existing) { set.status = 404; return { error: "User not found" }; }
-      if (existing.parameters_id) {
-        set.status = 409;
-        return { error: "Parameters already exist, use PUT to update" };
-      }
-      const [params] = await db`INSERT INTO parameters DEFAULT VALUES RETURNING *`;
-      await db`UPDATE users SET parameters_id = ${params.id} WHERE id = ${id}`;
-      set.status = 201;
-      return params;
-    } catch {
-      set.status = 500;
-      return { error: "Internal server error" };
-    }
-  })
-
   .put("/api/users/:id/parameters", async ({ params: { id }, body, set }) => {
     const { auto_start_work, auto_start_rest, auto_restart_cycle, notifications_on } =
       body as any;
@@ -120,24 +86,3 @@ export const userRoutes = new Elysia()
       return { error: "Internal server error" };
     }
   })
-
-  .delete("/api/users/:id/parameters", async ({ params: { id }, set }) => {
-    try {
-      const [reset] = await db`
-        UPDATE parameters p
-        SET
-          auto_start_work    = false,
-          auto_start_rest    = false,
-          auto_restart_cycle = false,
-          notifications_on   = true
-        FROM users u
-        WHERE u.parameters_id = p.id AND u.id = ${id}
-        RETURNING p.*
-      `;
-      if (!reset) { set.status = 404; return { error: "User not found" }; }
-      set.status = 204;
-    } catch {
-      set.status = 500;
-      return { error: "Internal server error" };
-    }
-  });

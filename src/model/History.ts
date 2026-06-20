@@ -1,23 +1,20 @@
-import type { PType } from "./Period.ts";
-import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
+import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {PeriodType} from "@/model/Period.ts";
+import type {StoreOptions} from "@/storage/indexDb.ts";
 
-export type HistoryType = {
-  id: number;
-  startSate: Date;
-  timespent: number;
-  typePeriode: PType;
-};
-export class History implements StorableInstance {
-  static readonly storeName: string = "history";
-  static readonly keyPath: string = "id";
-  static readonly indexes?: IndexDefinition[] = [
-    { name: "by_id", keyPath: "id", options: { unique: true } },
-  ];
+export const HistoryStoreOptions: StoreOptions = {
+    name: 'history',
+    keyPath: 'id',
+    indexes: [
+        { name: "by_id", keyPath: "id", options: { unique: true } },
+        { name: "by_user_id", keyPath: "user_id" }
+    ]
+}
 
-  constructor(
-    public id: number,
-    public startSate: Date,
-    public timespent: number,
-    public typePeriode: PType,
-  ) {}
+export interface History extends BaseEntity {
+     startSate: Date;
+     timespent: number;
+     typePeriode: PeriodType;
+
+     user_id: string;
 }
