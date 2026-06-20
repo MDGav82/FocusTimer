@@ -1,4 +1,4 @@
-import type {BaseEntity, PureEntity} from "@/model/BaseEntity.ts";
+import type {BaseEntity} from "@/model/BaseEntity.ts";
 import type {IRepository} from "@/storage/repositories/IRepository.ts";
 import type {GenericIndexedDbRepository} from "@/storage/repositories/GenericIndexDbRepository.ts";
 import type {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
