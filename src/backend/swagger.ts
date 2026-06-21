@@ -1,5 +1,6 @@
 import swaggerCss from "swagger-ui-dist/swagger-ui.css" with { type: "text" };
 import swaggerBundle from "swagger-ui-dist/swagger-ui-bundle.js" with { type: "text" };
+import { zodComponentSchemas } from "@/backend/zodOpenApi.ts";
 
 const openApiSpec = {
   openapi: "3.0.3",
@@ -29,77 +30,18 @@ const openApiSpec = {
       },
     },
     schemas: {
+      // The entity response shapes (User, Parameters, Task, Period, Cycle) and
+      // the request body shapes (AuthCredentials, UserUpdate, ParametersUpdate,
+      // TaskCreate, TaskUpdate, PeriodInput, CycleCreate, CycleUpdate) are
+      // generated from the Zod schemas in src/storage/schemas.ts — see
+      // ./zodOpenApi.ts — so the documented shapes cannot drift from what the
+      // frontend/routes actually use. Everything else below is hand-written
+      // (errors, history and reference lookups).
+      ...zodComponentSchemas,
       Error: {
         type: "object",
         properties: { error: { type: "string" } },
         required: ["error"],
-      },
-      User: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          email: { type: "string", format: "email" },
-          parameters_id: { type: "integer" },
-        },
-      },
-      UserWithParameters: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          email: { type: "string", format: "email" },
-          parameters_id: { type: "integer" },
-          auto_start_work: { type: "boolean" },
-          auto_start_rest: { type: "boolean" },
-          auto_restart_cycle: { type: "boolean" },
-          notifications_on: { type: "boolean" },
-        },
-      },
-      Parameters: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          auto_start_work: { type: "boolean" },
-          auto_start_rest: { type: "boolean" },
-          auto_restart_cycle: { type: "boolean" },
-          notifications_on: { type: "boolean" },
-        },
-      },
-      Task: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          user_id: { type: "integer" },
-          status_id: { type: "integer" },
-          status_name: { type: "string", enum: ["pending", "progress", "finish"] },
-          title: { type: "string" },
-          description: { type: "string", nullable: true },
-          estimated_time: { type: "integer", description: "Estimated time in seconds" },
-          progress: { type: "integer" },
-          time_spent: { type: "integer", description: "Time spent in seconds" },
-          creation_date: { type: "string", format: "date-time" },
-          start_date: { type: "string", format: "date-time", nullable: true },
-          end_date: { type: "string", format: "date-time", nullable: true },
-        },
-      },
-      Period: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          cycle_id: { type: "integer" },
-          type_periode_id: { type: "integer" },
-          type_name: { type: "string", enum: ["work", "break"] },
-          time: { type: "integer", description: "Duration in seconds" },
-          index: { type: "integer", description: "Order within the cycle" },
-        },
-      },
-      Cycle: {
-        type: "object",
-        properties: {
-          id: { type: "integer" },
-          user_id: { type: "integer" },
-          name: { type: "string" },
-          periods: { type: "array", items: { $ref: "#/components/schemas/Period" } },
-        },
       },
       HistoryEntry: {
         type: "object",
@@ -126,15 +68,6 @@ const openApiSpec = {
           name: { type: "string", enum: ["work", "break"] },
         },
       },
-      PeriodInput: {
-        type: "object",
-        required: ["type_periode_id", "time", "index"],
-        properties: {
-          type_periode_id: { type: "integer", minimum: 1, description: "1 = work, 2 = break" },
-          time: { type: "integer", description: "Duration in seconds" },
-          index: { type: "integer", description: "Order within the cycle" },
-        },
-      },
       HistoryRaw: {
         type: "object",
         properties: {
@@ -156,18 +89,7 @@ const openApiSpec = {
         summary: "Register a new user",
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["email", "password"],
-                properties: {
-                  email: { type: "string", format: "email" },
-                  password: { type: "string", minLength: 1 },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/AuthCredentials" } } },
         },
         responses: {
           "201": { description: "User created, token cookie set", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
@@ -183,18 +105,7 @@ const openApiSpec = {
         summary: "Login",
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["email", "password"],
-                properties: {
-                  email: { type: "string", format: "email" },
-                  password: { type: "string" },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/AuthCredentials" } } },
         },
         responses: {
           "200": { description: "Login successful, token cookie set", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
@@ -244,7 +155,7 @@ const openApiSpec = {
         security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
-          "200": { description: "User found", content: { "application/json": { schema: { $ref: "#/components/schemas/UserWithParameters" } } } },
+          "200": { description: "User found", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
@@ -256,17 +167,7 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  email: { type: "string", format: "email" },
-                  password: { type: "string", minLength: 1 },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UserUpdate" } } },
         },
         responses: {
           "200": { description: "User updated", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
@@ -288,29 +189,6 @@ const openApiSpec = {
       },
     },
     "/api/users/{id}/parameters": {
-      get: {
-        tags: ["Parameters"],
-        summary: "Get user parameters",
-        security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
-        responses: {
-          "200": { description: "Parameters found", content: { "application/json": { schema: { $ref: "#/components/schemas/Parameters" } } } },
-          "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
-      post: {
-        tags: ["Parameters"],
-        summary: "Create default parameters for a user (only if none exist)",
-        security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
-        responses: {
-          "201": { description: "Parameters created", content: { "application/json": { schema: { $ref: "#/components/schemas/Parameters" } } } },
-          "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          "409": { description: "Parameters already exist, use PUT to update", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
       put: {
         tags: ["Parameters"],
         summary: "Update user parameters (partial update)",
@@ -318,33 +196,10 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  auto_start_work: { type: "boolean" },
-                  auto_start_rest: { type: "boolean" },
-                  auto_restart_cycle: { type: "boolean" },
-                  notifications_on: { type: "boolean" },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ParametersUpdate" } } },
         },
         responses: {
-          "200": { description: "Parameters updated", content: { "application/json": { schema: { $ref: "#/components/schemas/Parameters" } } } },
-          "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-        },
-      },
-      delete: {
-        tags: ["Parameters"],
-        summary: "Reset user parameters to default values",
-        security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
-        responses: {
-          "204": { description: "Parameters reset to defaults" },
+          "200": { description: "Parameters updated, returns the full user", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
@@ -368,19 +223,7 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["title"],
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  estimated_time: { type: "integer", description: "Estimated time in seconds", default: 0 },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/TaskCreate" } } },
         },
         responses: {
           "201": { description: "Task created", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
@@ -408,23 +251,7 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  status_id: { type: "integer" },
-                  estimated_time: { type: "integer" },
-                  progress: { type: "integer" },
-                  time_spent: { type: "integer" },
-                  start_date: { type: "string", format: "date-time" },
-                  end_date: { type: "string", format: "date-time" },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/TaskUpdate" } } },
         },
         responses: {
           "200": { description: "Task updated", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
@@ -462,18 +289,7 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["name"],
-                properties: {
-                  name: { type: "string" },
-                  periods: { type: "array", items: { $ref: "#/components/schemas/PeriodInput" } },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CycleCreate" } } },
         },
         responses: {
           "201": { description: "Cycle created", content: { "application/json": { schema: { $ref: "#/components/schemas/Cycle" } } } },
@@ -501,17 +317,7 @@ const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  periods: { type: "array", items: { $ref: "#/components/schemas/PeriodInput" }, description: "Replaces all existing periods when provided" },
-                },
-              },
-            },
-          },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CycleUpdate" } } },
         },
         responses: {
           "200": { description: "Cycle updated", content: { "application/json": { schema: { $ref: "#/components/schemas/Cycle" } } } },
@@ -587,7 +393,7 @@ const openApiSpec = {
               schema: {
                 type: "object",
                 properties: {
-                  type_periode_id: { type: "integer" },
+                  typePeriode: { type: "integer", enum: [0, 1], description: "PeriodType enum: 0 = work, 1 = break" },
                   time: { type: "integer" },
                   index: { type: "integer" },
                 },

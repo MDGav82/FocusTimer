@@ -2,6 +2,8 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
 import { getUserById } from "./users";
+import { UserSchema } from "@/storage/schemas.ts";
+import { validateResponse } from "../validateResponse";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .use(jwtPlugin)
@@ -38,7 +40,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       });
 
       set.status = 201;
-      return await getUserById(user.id);
+      return validateResponse(UserSchema, await getUserById(user.id));
     } catch (err: any) {
       if (err.code === "23505") {
         set.status = 409;
@@ -85,7 +87,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         path: "/",
       });
 
-      return await getUserById(user.id);
+      return validateResponse(UserSchema, await getUserById(user.id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -125,7 +127,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         set.status = 401;
         return { error: "Unauthorized" };
       }
-      return user;
+      return validateResponse(UserSchema, user);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };

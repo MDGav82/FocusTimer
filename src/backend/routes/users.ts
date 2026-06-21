@@ -1,13 +1,15 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { UserSchema } from "@/storage/schemas.ts";
+import { validateResponse, validateResponseList } from "../validateResponse";
 
 export function toUserJson(row: any) {
   return {
     id: row.id,
     email: row.email,
     parameters: {
-      id: row.parameters_id,
+      id: String(row.parameters_id),
       autoStartWork: row.auto_start_work,
       autoStartRest: row.auto_start_rest,
       autoRestartCycle: row.auto_restart_cycle,
@@ -41,7 +43,7 @@ export const userRoutes = new Elysia()
         JOIN parameters p ON p.id = u.parameters_id
         ORDER BY u.id ASC
       `;
-      return rows.map(toUserJson);
+      return validateResponseList(UserSchema, rows.map(toUserJson));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -52,7 +54,7 @@ export const userRoutes = new Elysia()
     try {
       const user = await getUserById(id);
       if (!user) { set.status = 404; return { error: "User not found" }; }
-      return user;
+      return validateResponse(UserSchema, user);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -72,7 +74,7 @@ export const userRoutes = new Elysia()
         RETURNING id
       `;
       if (!updated) { set.status = 404; return { error: "User not found" }; }
-      return await getUserById(id);
+      return validateResponse(UserSchema, await getUserById(id));
     } catch (err: any) {
       if (err.code === "23505") { set.status = 409; return { error: "Email already in use" }; }
       set.status = 500;
@@ -107,7 +109,7 @@ export const userRoutes = new Elysia()
         RETURNING u.id
       `;
       if (!updated) { set.status = 404; return { error: "User not found" }; }
-      return await getUserById(updated.id);
+      return validateResponse(UserSchema, await getUserById(updated.id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };

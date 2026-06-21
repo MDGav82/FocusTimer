@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { TaskSchema } from "@/storage/schemas.ts";
+import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend Status enum (PENDING=0, PROGRESS=1, FINISHED=2)
 const STATUS_NAMES = ["pending", "progress", "finish"];
@@ -45,7 +47,7 @@ export const taskRoutes = new Elysia()
         WHERE t.user_id = ${id}
         ORDER BY t.creation_date DESC
       `;
-      return rows.map(toTaskJson);
+      return validateResponseList(TaskSchema, rows.map(toTaskJson));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -69,7 +71,7 @@ export const taskRoutes = new Elysia()
         RETURNING id
       `;
       set.status = 201;
-      return await getTaskById(task.id);
+      return validateResponse(TaskSchema, await getTaskById(task.id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -80,7 +82,7 @@ export const taskRoutes = new Elysia()
     try {
       const task = await getTaskById(id);
       if (!task) { set.status = 404; return { error: "Task not found" }; }
-      return task;
+      return validateResponse(TaskSchema, task);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -109,7 +111,7 @@ export const taskRoutes = new Elysia()
         RETURNING id
       `;
       if (!updated) { set.status = 404; return { error: "Task not found" }; }
-      return await getTaskById(id);
+      return validateResponse(TaskSchema, await getTaskById(id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };

@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { CycleSchema, PeriodSchema } from "@/storage/schemas.ts";
+import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)
 const PERIOD_TYPE_NAMES = ["work", "break"];
@@ -49,7 +51,8 @@ export const cycleRoutes = new Elysia()
       const cycles = await db`
         SELECT id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
-      return await Promise.all(cycles.map((c: { id: string }) => getCycleWithPeriods(c.id)));
+      const result = await Promise.all(cycles.map((c: { id: string }) => getCycleWithPeriods(c.id)));
+      return validateResponseList(CycleSchema, result);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -74,7 +77,7 @@ export const cycleRoutes = new Elysia()
         }
       }
       set.status = 201;
-      return await getCycleWithPeriods(cycle.id);
+      return validateResponse(CycleSchema, await getCycleWithPeriods(cycle.id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -85,7 +88,7 @@ export const cycleRoutes = new Elysia()
     try {
       const cycle = await getCycleWithPeriods(id);
       if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
-      return cycle;
+      return validateResponse(CycleSchema, cycle);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -112,7 +115,7 @@ export const cycleRoutes = new Elysia()
       }
       const result = await getCycleWithPeriods(id);
       if (!result) { set.status = 404; return { error: "Cycle not found" }; }
-      return result;
+      return validateResponse(CycleSchema, result);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -141,7 +144,7 @@ export const cycleRoutes = new Elysia()
         WHERE p.cycle_id = ${id}
         ORDER BY p.index ASC
       `;
-      return periods.map(toPeriodJson);
+      return validateResponseList(PeriodSchema, periods.map(toPeriodJson));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -166,7 +169,7 @@ export const cycleRoutes = new Elysia()
         RETURNING id
       `;
       set.status = 201;
-      return await getPeriodById(period.id);
+      return validateResponse(PeriodSchema, await getPeriodById(period.id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -177,7 +180,7 @@ export const cycleRoutes = new Elysia()
     try {
       const period = await getPeriodById(id);
       if (!period) { set.status = 404; return { error: "Period not found" }; }
-      return period;
+      return validateResponse(PeriodSchema, period);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -198,7 +201,7 @@ export const cycleRoutes = new Elysia()
         RETURNING id
       `;
       if (!updated) { set.status = 404; return { error: "Period not found" }; }
-      return await getPeriodById(id);
+      return validateResponse(PeriodSchema, await getPeriodById(id));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
