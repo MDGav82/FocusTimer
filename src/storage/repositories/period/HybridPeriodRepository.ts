@@ -19,7 +19,7 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
         super(api, local, outbox, connectivity);
     }
 
-    async createPeriodForCycle(cycleId: string, purePeriod: PureEntity<Period>): Promise<Period> {
+    async createPeriodForCycle(cycleId: string, purePeriod: Omit<PureEntity<Period>, 'cycle_id'>): Promise<Period> {
         const period = await this.local.createPeriodForCycle(cycleId, {
             ...purePeriod,
             cycle_id: cycleId,

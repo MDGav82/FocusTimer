@@ -19,7 +19,7 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
         super(api, local, outbox, connectivity);
     }
 
-    async createTaskForUser(userId: string, pureTask: PureEntity<Task>): Promise<Task> {
+    async createTaskForUser(userId: string, pureTask: Omit<PureEntity<Task>, 'user_id'>): Promise<Task> {
         const task = await this.local.createTaskForUser(userId, {
             ...pureTask,
             user_id: userId,

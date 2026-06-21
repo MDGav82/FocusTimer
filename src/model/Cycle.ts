@@ -11,7 +11,6 @@ export const CycleStoreOptions: StoreOptions = {
 }
 
 export interface Cycle extends BaseEntity {
-    id: string;
     name: string;
     // periods: Period[];
 

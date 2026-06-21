@@ -18,7 +18,7 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
         super(api, local, outbox, connectivity);
     }
 
-    async createCycleForUser(userId: string, pureCycle: PureEntity<Cycle>): Promise<Cycle> {
+    async createCycleForUser(userId: string, pureCycle: Omit<PureEntity<Cycle>, 'user_id'>): Promise<Cycle> {
         const cycle = await this.local.createCycleForUser(userId, {
             ...pureCycle,
             user_id: userId,
