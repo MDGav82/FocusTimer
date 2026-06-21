@@ -28,7 +28,7 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
             _syncStatus: 'pending',
         })
 
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 const api_period = this.api.createPeriodForCycle(cycleId, period);
                 await this.local.update(period.id, { _syncStatus: 'synced' });
@@ -48,8 +48,8 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
         return period;
     }
 
-    getPeriodsForCycle(cycleId: string): Promise<Period[]> {
-        if (this.connectivity.isOnline()) {
+    async getPeriodsForCycle(cycleId: string): Promise<Period[]> {
+        if (await this.connectivity.canUseApi()) {
             try {
                 return this.api.getPeriodsForCycle(cycleId);
             } catch {

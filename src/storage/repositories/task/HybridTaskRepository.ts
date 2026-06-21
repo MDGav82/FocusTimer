@@ -28,7 +28,7 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
             _syncStatus: 'pending',
         } as Task);
 
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 const api_task = this.api.createTaskForUser(userId, task);
                 await this.local.update(task.id, { _syncStatus: 'synced' });
@@ -50,7 +50,7 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
 
 
     async getTasksForUser(userId: string): Promise<Task[]> {
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 return await this.api.getTasksForUser(userId);
             } catch {

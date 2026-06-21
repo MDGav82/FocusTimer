@@ -23,7 +23,7 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
         const user = await this.local.updateParameters(id, parameters);
         user._syncStatus = 'pending';
 
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 await this.api.updateParameters(id, parameters);
                 await this.local.update(id, { _syncStatus: 'synced' })
@@ -40,5 +40,9 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
             entityId: id,
             payload: parameters,
         }).then(() => user)
+    }
+
+    async hasConnection(): Promise<boolean> {
+        return this.local.hasConnection();
     }
 }

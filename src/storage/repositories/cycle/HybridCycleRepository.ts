@@ -27,7 +27,7 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
             _syncStatus: 'pending',
         } as Cycle);
 
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 const api_cycle = this.api.createCycleForUser(userId, cycle);
                 await this.local.update(cycle.id, { _syncStatus: 'synced' });
@@ -48,7 +48,7 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
     }
 
     async getCyclesForUser(userId: string): Promise<Cycle[]> {
-        if (this.connectivity.isOnline()) {
+        if (await this.connectivity.canUseApi()) {
             try {
                 return await this.api.getCyclesForUser(userId);
             } catch {
