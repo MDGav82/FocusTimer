@@ -1,6 +1,11 @@
 import type {Task} from "@/model/Task.ts";
 import type {ITaskRepository} from "@/storage/repositories/task/ITaskRepository.ts";
+import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
+import {TaskSchema} from "@/storage/schemas.ts";
 
+function withSyncMeta(task: ReturnType<typeof TaskSchema.parse>): Task {
+    return {...task, updatedAt: Date.now(), _syncStatus: 'synced'};
+}
 
 export class ApiTaskRepository implements ITaskRepository {
     /**
@@ -8,9 +13,10 @@ export class ApiTaskRepository implements ITaskRepository {
      * @param id The id of the task to retrieve
      */
     async getById(id: string): Promise<Task | undefined> {
-        return fetch(`/api/task/${id}`, {
+        const data = await apiFetch(`/api/task/${id}`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(TaskSchema, data, id));
     }
 
     /**
@@ -19,10 +25,11 @@ export class ApiTaskRepository implements ITaskRepository {
      * @param entity The updated task data
      */
     async update(id: string, entity: Partial<Task>): Promise<Task> {
-        return fetch(`/api/task/${id}`, {
+        const data = await apiFetch(`/api/task/${id}`, {
             method: 'PUT',
             body: JSON.stringify(entity),
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(TaskSchema, data, id));
     }
 
     /**
@@ -30,21 +37,23 @@ export class ApiTaskRepository implements ITaskRepository {
      * @param id The id of the task to delete
      */
     async delete(id: string): Promise<void> {
-        return fetch(`/api/task/${id}`, {
+        await apiFetch(`/api/task/${id}`, {
             method: 'DELETE',
-        }).then(res => res.json());
+        });
     }
 
     async createTaskForUser(userId: string, task: Task): Promise<Task> {
-        return fetch(`/api/user/${userId}/tasks`, {
+        const data = await apiFetch(`/api/user/${userId}/tasks`, {
             method: 'POST',
             body: JSON.stringify(task),
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(TaskSchema, data));
     }
 
     async getTasksForUser(userId: string): Promise<Task[]> {
-        return fetch(`/api/user/${userId}/tasks`, {
+        const data = await apiFetch(`/api/user/${userId}/tasks`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return parseEntityList(TaskSchema, data).map(withSyncMeta);
     }
 }

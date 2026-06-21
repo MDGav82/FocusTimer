@@ -12,12 +12,12 @@ import {
 
 interface TasksProps {
   tasks: Task[];
-  selectedTaskId: number | null;
-  onSelectTask: (id: number | null) => void;
+  selectedTaskId: string | null;
+  onSelectTask: (id: string | null) => void;
   onAddTask: (title: string, minutes: number) => void;
-  onEditTask: (id: number, title: string, minutes: number) => void;
+  onEditTask: (id: string, title: string, minutes: number) => void;
   onDeleteAll: () => void;
-  onToggleComplete: (id: number) => void;
+  onToggleComplete: (id: string) => void;
 }
 
 export function Tasks({
@@ -285,7 +285,7 @@ export function Tasks({
           </form>
         </DialogContent>
       </Dialog>
--
+
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-sm">
           <DialogHeader>

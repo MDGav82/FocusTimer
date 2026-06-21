@@ -21,7 +21,7 @@ export const requireAuth = new Elysia({ name: "pomodoro" })
     const token = (cookie.token?.value as string) ?? "";
     const payload = token ? await jwt.verify(token) : false;
     return {
-      user: (payload || null) as { id: number; email: string } | null,
+      user: (payload || null) as { id: string; email: string } | null,
     };
   })
   .onBeforeHandle({ as: "scoped" }, ({ user, set }) => {

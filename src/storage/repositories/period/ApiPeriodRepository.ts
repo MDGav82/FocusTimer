@@ -1,5 +1,11 @@
 import type {Period} from "@/model/Period.ts";
 import type {IPeriodRepository} from "@/storage/repositories/period/IPeriodRepository.ts";
+import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
+import {PeriodSchema} from "@/storage/schemas.ts";
+
+function withSyncMeta(period: ReturnType<typeof PeriodSchema.parse>): Period {
+    return {...period, updatedAt: Date.now(), _syncStatus: 'synced'};
+}
 
 export class ApiPeriodRepository implements IPeriodRepository {
     /**
@@ -7,9 +13,10 @@ export class ApiPeriodRepository implements IPeriodRepository {
      * @param id The id of the period to retrieve
      */
     async getById(id: string): Promise<Period | undefined> {
-        return fetch(`/api/periods/${id}`, {
+        const data = await apiFetch(`/api/periods/${id}`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(PeriodSchema, data, id));
     }
 
     /**
@@ -18,10 +25,11 @@ export class ApiPeriodRepository implements IPeriodRepository {
      * @param entity The updated period data
      */
     async update(id: string, entity: Partial<Period>): Promise<Period> {
-        return fetch(`/api/periods/${id}`, {
+        const data = await apiFetch(`/api/periods/${id}`, {
             method: 'PUT',
             body: JSON.stringify(entity),
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(PeriodSchema, data, id));
     }
 
     /**
@@ -29,21 +37,23 @@ export class ApiPeriodRepository implements IPeriodRepository {
      * @param id The id of the period to delete
      */
     async delete(id: string): Promise<void> {
-        return fetch(`/api/periods/${id}`, {
+        await apiFetch(`/api/periods/${id}`, {
             method: 'DELETE',
-        }).then(res => res.json());
+        });
     }
 
     async createPeriodForCycle(cycleId: string, period: Period): Promise<Period> {
-        return fetch(`/api/cycles/${cycleId}/periods`, {
+        const data = await apiFetch(`/api/cycles/${cycleId}/periods`, {
             method: 'POST',
             body: JSON.stringify(period),
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(PeriodSchema, data));
     }
 
     async getPeriodsForCycle(cycleId: string): Promise<Period[]> {
-        return fetch(`/api/cycles/${cycleId}/periods`, {
+        const data = await apiFetch(`/api/cycles/${cycleId}/periods`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return parseEntityList(PeriodSchema, data).map(withSyncMeta);
     }
 }

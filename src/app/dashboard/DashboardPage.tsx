@@ -1,4 +1,4 @@
-import { type TaskType, Status } from "@/model/Task";
+import { type Task, Status } from "@/model/Task";
 import {
     ChartContainer,
     ChartTooltip,
@@ -10,12 +10,20 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { CheckCircle2, Clock, Zap } from "lucide-react";
 
-const MOCK_TASKS: TaskType[] = [
-    { id: 1, title: "Conception UI",   description: "", estimatedTime: 90,  creationDate: new Date(), startDate: new Date(), timeSpent: 5700, endDate: new Date(), status: Status.FINISHED },
-    { id: 2, title: "Intégration API", description: "", estimatedTime: 120, creationDate: new Date(), startDate: new Date(), timeSpent: 6900, endDate: new Date(), status: Status.FINISHED },
-    { id: 3, title: "Tests unitaires", description: "", estimatedTime: 60,  creationDate: new Date(), startDate: new Date(), timeSpent: 2100, endDate: new Date(), status: Status.FINISHED },
-    { id: 4, title: "Documentation",   description: "", estimatedTime: 45,  creationDate: new Date(), startDate: new Date(), timeSpent: 0,    endDate: new Date(), status: Status.PENDING  },
-    { id: 5, title: "Refactoring",     description: "", estimatedTime: 30,  creationDate: new Date(), startDate: new Date(), timeSpent: 2520, endDate: new Date(), status: Status.PENDING  },
+function makeMockTask(id: string, title: string, estimatedTime: number, timeSpent: number, status: Status): Task {
+    const now = new Date();
+    return {
+        id, title, description: "", estimatedTime, creationDate: now, startDate: now, timeSpent, endDate: now, status,
+        user_id: "mock-user", updatedAt: now.getTime(), _syncStatus: "synced",
+    };
+}
+
+const MOCK_TASKS: Task[] = [
+    makeMockTask("mock-1", "Conception UI",   90,  5700, Status.FINISHED),
+    makeMockTask("mock-2", "Intégration API", 120, 6900, Status.FINISHED),
+    makeMockTask("mock-3", "Tests unitaires", 60,  2100, Status.FINISHED),
+    makeMockTask("mock-4", "Documentation",   45,  0,    Status.PENDING),
+    makeMockTask("mock-5", "Refactoring",     30,  2520, Status.PENDING),
 ];
 
 const POMODORO_DURATION = 25 * 60;

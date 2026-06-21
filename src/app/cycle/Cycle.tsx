@@ -1,30 +1,33 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Cycle as CycleModel } from "@/model/Cycle";
+import type { Cycle as CycleModel } from "@/model/Cycle";
+import { PeriodType, type Period } from "@/model/Period";
+
+export type CycleWithPeriods = CycleModel & { periods: Period[] };
 
 interface CycleProps {
-  cycles: any[];
-  currentCycle: CycleModel;
+  cycles: CycleWithPeriods[];
+  currentCycle: CycleWithPeriods | undefined;
   currentPeriodIndex: number;
-  onDeleteCycle?: (id: number) => void;
-  onUpdateCycle?: (id: number, updatedPeriods: any[], newName?: string) => void;
-  onDuplicateCycle?: (id: number) => void;
+  onDeleteCycle?: (id: string) => void;
+  onUpdateCycle?: (id: string, updatedPeriods: Period[], newName?: string) => void;
+  onDuplicateCycle?: (id: string) => void;
   onCreateCycle?: () => void;
-  onSelectCycle?: (id: number) => void;
+  onSelectCycle?: (id: string) => void;
   onSelectPeriodIndex?: (index: number) => void; // Nouvelle prop ajoutée ici
 }
 
-const PERIOD_LABELS: Record<string, string> = {
-  work: "Travail",
-  break: "Pause",
+const PERIOD_LABELS: Record<PeriodType, string> = {
+  [PeriodType.WORK]: "Travail",
+  [PeriodType.REST]: "Pause",
 };
 
-export function Cycle({ 
-  cycles, 
-  currentCycle, 
-  currentPeriodIndex, 
-  onDeleteCycle, 
+export function Cycle({
+  cycles,
+  currentCycle,
+  currentPeriodIndex,
+  onDeleteCycle,
   onUpdateCycle,
   onDuplicateCycle,
   onCreateCycle,
@@ -34,12 +37,12 @@ export function Cycle({
   const currentCycleName = currentCycle?.name ?? "Aucun cycle actif";
   const periods = currentCycle?.periods ?? [];
 
-  const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
-  const [localPeriods, setLocalPeriods] = useState<any[]>([]);
+  const [editingCycleId, setEditingCycleId] = useState<string | null>(null);
+  const [localPeriods, setLocalPeriods] = useState<Period[]>([]);
   const [localCycleName, setLocalCycleName] = useState<string>("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  const handleStartEdit = (cycle: any) => {
+  const handleStartEdit = (cycle: CycleWithPeriods) => {
     if (editingCycleId === cycle.id) {
       setEditingCycleId(null);
       setLocalPeriods([]);
@@ -58,9 +61,8 @@ export function Cycle({
     }
   };
 
-  const handleUpdatePeriodType = (idx: number, type: string) => {
-    const updated = [...localPeriods];
-    updated[idx] = { ...updated[idx], typePeriode: type };
+  const handleUpdatePeriodType = (idx: number, type: PeriodType) => {
+    const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, typePeriode: type } : p));
     setLocalPeriods(updated);
     if (onUpdateCycle && editingCycleId !== null) {
       onUpdateCycle(editingCycleId, updated, localCycleName);
@@ -68,8 +70,7 @@ export function Cycle({
   };
 
   const handleUpdatePeriodTime = (idx: number, minutes: number) => {
-    const updated = [...localPeriods];
-    updated[idx] = { ...updated[idx], time: Math.max(0, minutes) * 60 };
+    const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, time: Math.max(0, minutes) * 60 } : p));
     setLocalPeriods(updated);
     if (onUpdateCycle && editingCycleId !== null) {
       onUpdateCycle(editingCycleId, updated, localCycleName);
@@ -85,15 +86,19 @@ export function Cycle({
   };
 
   const handleAddPeriod = () => {
-    const newPeriod = {
-      id: Date.now(),
+    if (editingCycleId === null) return;
+    const newPeriod: Period = {
+      id: crypto.randomUUID(),
       index: localPeriods.length,
-      typePeriode: "work",
+      typePeriode: PeriodType.WORK,
       time: 25 * 60,
+      cycle_id: editingCycleId,
+      updatedAt: Date.now(),
+      _syncStatus: 'synced',
     };
     const updated = [...localPeriods, newPeriod];
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
+    if (onUpdateCycle) {
       onUpdateCycle(editingCycleId, updated, localCycleName);
     }
   };
@@ -103,15 +108,16 @@ export function Cycle({
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
     const updated = [...localPeriods];
     const draggedItem = updated[draggedIndex];
-    
+    if (draggedItem === undefined) return;
+
     updated.splice(draggedIndex, 1);
     updated.splice(index, 0, draggedItem);
-    
+
     setDraggedIndex(index);
     setLocalPeriods(updated);
     if (onUpdateCycle && editingCycleId !== null) {
@@ -138,7 +144,7 @@ export function Cycle({
               Sélectionner un cycle
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-700/50 pb-4 pr-6">
               <div className="space-y-1">
@@ -147,31 +153,31 @@ export function Cycle({
                   Choisissez le cycle de travail que vous souhaitez utiliser.
                 </DialogDescription>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
-                onClick={() => onCreateCycle?.()} 
+                onClick={() => onCreateCycle?.()}
                 className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20 font-semibold transition active:scale-95"
               >
                 Ajouter un cycle
               </Button>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {cycles && cycles.length > 0 ? (
                 cycles.map((cycle) => {
-                  const isActive = cycle.id === currentCycle.id;
+                  const isActive = cycle.id === currentCycle?.id;
                   const isEditing = editingCycleId === cycle.id;
 
                   return (
                     <div key={cycle.id} className="flex flex-col gap-2">
-                      <div 
+                      <div
                         onClick={() => !isEditing && onSelectCycle?.(cycle.id)}
                         className={`bg-slate-900/40 border p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${
-                          isEditing 
-                            ? "border-amber-500/40 bg-slate-900/60" 
-                            : isActive 
-                            ? "border-amber-500/60 bg-slate-900/30 ring-1 ring-amber-500/20" 
+                          isEditing
+                            ? "border-amber-500/40 bg-slate-900/60"
+                            : isActive
+                            ? "border-amber-500/60 bg-slate-900/30 ring-1 ring-amber-500/20"
                             : "border-slate-700/50 hover:border-slate-600 cursor-pointer"
                         }`}
                       >
@@ -184,19 +190,16 @@ export function Cycle({
                               </span>
                             )}
                           </div>
-                          
-                          <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
-                            {cycle.periods?.map((p: any, idx: number) => {
-                              let currentType = String(p.typePeriode || "");
-                              if (currentType.includes("break")) currentType = "break";
 
-                              const isWork = currentType === "work";
-                              const displayName = PERIOD_LABELS[currentType] || currentType || "Période";
+                          <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+                            {cycle.periods?.map((p, idx) => {
+                              const isWork = p.typePeriode === PeriodType.WORK;
+                              const displayName = PERIOD_LABELS[p.typePeriode] ?? "Période";
                               const displayMinutes = p.time ? Math.round(p.time / 60) : 0;
 
                               return (
                                 <div key={p.id ?? idx} className="flex items-center gap-2">
-                                  <span 
+                                  <span
                                     className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium bg-slate-800/80 transition-all ${
                                       isWork ? "text-rose-400/90 border-rose-500/20" : "text-cyan-400/90 border-cyan-500/20"
                                     }`}
@@ -212,34 +215,34 @@ export function Cycle({
                           </div>
                         </div>
 
-                        <div 
+                        <div
                           className="flex flex-col gap-2 w-full sm:w-36 shrink-0 sm:self-center"
-                          onClick={(e) => e.stopPropagation()} 
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => onDuplicateCycle?.(cycle.id)}
                             className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs h-8 w-full transition active:scale-95"
                           >
                             Dupliquer le cycle
                           </Button>
-                          
-                          <Button 
-                            variant="outline" 
+
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleStartEdit(cycle)}
                             className={`text-xs h-8 w-full transition ${
-                              isEditing 
-                                ? "bg-amber-500 text-slate-950 border-amber-500 font-bold hover:bg-amber-400" 
+                              isEditing
+                                ? "bg-amber-500 text-slate-950 border-amber-500 font-bold hover:bg-amber-400"
                                 : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
                             }`}
                           >
                             {isEditing ? "Fermer l'édition" : "Modifier le cycle"}
                           </Button>
-                          
-                          <Button 
-                            variant="outline" 
+
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => onDeleteCycle?.(cycle.id)}
                             className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs h-8 font-medium w-full justify-center shadow-sm"
@@ -272,12 +275,10 @@ export function Cycle({
 
                           <div className="space-y-2">
                             {localPeriods.map((p, idx) => {
-                              let currentType = String(p.typePeriode || "");
-                              if (currentType.includes("break")) currentType = "break";
                               const displayMinutes = p.time ? Math.round(p.time / 60) : 0;
 
                               return (
-                                <div 
+                                <div
                                   key={p.id ?? idx}
                                   draggable
                                   onDragStart={() => handleDragStart(idx)}
@@ -296,12 +297,12 @@ export function Cycle({
                                   </span>
 
                                   <select
-                                    value={currentType}
-                                    onChange={(e) => handleUpdatePeriodType(idx, e.target.value)}
+                                    value={p.typePeriode}
+                                    onChange={(e) => handleUpdatePeriodType(idx, Number(e.target.value) as PeriodType)}
                                     className="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-amber-500/50"
                                   >
-                                    <option value="work">Travail</option>
-                                    <option value="break">Pause</option>
+                                    <option value={PeriodType.WORK}>Travail</option>
+                                    <option value={PeriodType.REST}>Pause</option>
                                   </select>
 
                                   <div className="flex items-center gap-1.5 ml-auto">
@@ -352,8 +353,8 @@ export function Cycle({
                   <p className="text-xs text-slate-500 max-w-xs mt-1 mb-4">
                     Vous avez supprimé tous vos profils de timers. Créez-en un nouveau pour recommencer.
                   </p>
-                  <Button 
-                    onClick={() => onCreateCycle?.()} 
+                  <Button
+                    onClick={() => onCreateCycle?.()}
                     className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/5"
                   >
                     + Créer un cycle de base
@@ -364,36 +365,30 @@ export function Cycle({
           </DialogContent>
         </Dialog>
       </div>
-      
+
       <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/30 space-y-3">
         <span className="text-xs text-slate-400 font-semibold block">Timeline du cycle :</span>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {periods.length > 0 ? (
             periods.map((p, idx) => {
               const isCurrent = idx === currentPeriodIndex;
-              
+              const isWork = p.typePeriode === PeriodType.WORK;
+
               // Base de style interactif commun : curseur pointer, transition et effet au survol
               let badgeColor = "bg-slate-800 text-slate-400 border-slate-700 cursor-pointer hover:bg-slate-700/60 hover:text-slate-300 hover:scale-105 active:scale-95";
-              
-              let currentType = String(p.typePeriode || "");
-              if (currentType.includes("break")) {
-                currentType = "break";
-              }
 
               if (isCurrent) {
-                if (currentType === "work") {
-                  badgeColor = "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105 cursor-default";
-                } else {
-                  badgeColor = "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105 cursor-default";
-                }
+                badgeColor = isWork
+                  ? "bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold scale-105 cursor-default"
+                  : "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 font-bold scale-105 cursor-default";
               }
 
-              const displayName = PERIOD_LABELS[currentType] || currentType || "Période";
+              const displayName = PERIOD_LABELS[p.typePeriode] ?? "Période";
               const displayMinutes = p.time ? Math.round(p.time / 60) : 0;
 
               return (
                 <div key={p.id ?? idx} className="flex items-center gap-2">
-                  <span 
+                  <span
                     onClick={() => !isCurrent && onSelectPeriodIndex?.(idx)} // Déclenche le changement si ce n'est pas le timer actif
                     className={`px-2.5 py-1 rounded-lg border transition-all duration-200 select-none ${badgeColor}`}
                   >

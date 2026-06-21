@@ -1,74 +1,88 @@
 import { useState } from "react";
 import { Timer } from "./Timer";
-import { Cycle } from "../cycle/Cycle";
+import { Cycle, type CycleWithPeriods } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
-import type { Period } from "@/model/Period";
-import type { PType } from "@/model/Period";
-import { Cycle as CycleModel } from "@/model/Cycle";
-import { Task, Status } from "@/model/Task";
-import { type CycleType } from "@/model/Cycle";
+import { PeriodType, type Period } from "@/model/Period";
+import { Status, type Task } from "@/model/Task";
+
+const MOCK_USER_ID = "mock-user";
+
+function makePeriod(time: number, typePeriode: PeriodType, index: number, cycleId: string): Period {
+  return {
+    id: crypto.randomUUID(),
+    time,
+    index,
+    typePeriode,
+    cycle_id: cycleId,
+    updatedAt: Date.now(),
+    _syncStatus: "synced",
+  };
+}
+
+function makeCycle(name: string, periodSpecs: Array<[number, PeriodType]>): CycleWithPeriods {
+  const id = crypto.randomUUID();
+  return {
+    id,
+    name,
+    user_id: MOCK_USER_ID,
+    periods: periodSpecs.map(([time, typePeriode], index) => makePeriod(time, typePeriode, index, id)),
+    updatedAt: Date.now(),
+    _syncStatus: "synced",
+  };
+}
+
+function makeTask(title: string, description: string, estimatedTime: number, status: Status, timeSpent = 0): Task {
+  const now = new Date();
+  return {
+    id: crypto.randomUUID(),
+    title,
+    description,
+    estimatedTime,
+    creationDate: now,
+    startDate: now,
+    timeSpent,
+    endDate: now,
+    status,
+    user_id: MOCK_USER_ID,
+    updatedAt: Date.now(),
+    _syncStatus: "synced",
+  };
+}
+
+const INITIAL_CYCLES: CycleWithPeriods[] = [
+  makeCycle("Cycle par Défaut", [
+    [25 * 60, PeriodType.WORK],
+    [5 * 60, PeriodType.REST],
+    [25 * 60, PeriodType.WORK],
+    [15 * 60, PeriodType.REST],
+  ]),
+  makeCycle("Cycle 2", [
+    [50 * 60, PeriodType.WORK],
+    [10 * 60, PeriodType.REST],
+  ]),
+  makeCycle("Cycle 3", [
+    [90 * 60, PeriodType.WORK],
+    [20 * 60, PeriodType.REST],
+  ]),
+];
+
+const DEFAULT_FALLBACK_PERIOD: Period = makePeriod(25 * 60, PeriodType.WORK, 0, "fallback");
 
 export function LandingPage() {
-  // Période de secours globale au cas où un cycle se retrouverait sans période
-  const defaultFallbackPeriod: Period = { id: 999, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 };
-
-  const [periods, setPeriods] = useState<Period[]>([
-    { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-    { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-    { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-    { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
-  ]);
-
+  const [cycles, setCycles] = useState<CycleWithPeriods[]>(INITIAL_CYCLES);
+  const [periods, setPeriods] = useState<Period[]>(INITIAL_CYCLES[0]?.periods ?? [DEFAULT_FALLBACK_PERIOD]);
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
-  
+
   // Sécurisation : Si la période à l'index actuel n'existe pas, on prend la première du tableau. Si le tableau est vide, on prend la période de secours.
-  const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? defaultFallbackPeriod;
-
-  // Correction de l'état initial : On donne des périodes de base à tous les cycles pour éviter l'état vide au démarrage
-  const [cycles, setCycles] = useState<CycleType[]>([
-    {
-      id: 1,
-      name: "Cycle par Défaut",
-      periods: [
-        { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-        { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
-      ],
-    }, 
-    {
-      id: 2,
-      name: "Cycle 2",
-      periods: [
-        { id: 201, index: 0, typePeriode: "work" as unknown as PType, time: 50 * 60 },
-        { id: 202, index: 1, typePeriode: "break" as unknown as PType, time: 10 * 60 },
-      ],
-    }, 
-    {
-      id: 3,
-      name: "Cycle 3",
-      periods: [
-        { id: 301, index: 0, typePeriode: "work" as unknown as PType, time: 90 * 60 },
-        { id: 302, index: 1, typePeriode: "break" as unknown as PType, time: 20 * 60 },
-      ],
-    }
-  ]);
-
-  const currentCycleMock: CycleModel = {
-    id: cycles[0]?.id ?? 1,
-    name: cycles[0]?.name ?? "Cycle sans nom",
-    periods: cycles[0]?.periods ?? periods,
-    storeName: 'cycle',
-    keyPath: 'id'
-  } as unknown as CycleModel;
+  const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? DEFAULT_FALLBACK_PERIOD;
 
   const [tasks, setTasks] = useState<Task[]>([
-    new Task(1, "Tâche par défaut uno", "Description 1", 1800, new Date(), new Date(), 1200, new Date(), Status.PROGRESS),
-    new Task(2, "Tâche par défaut secondo", "Description 2", 1200, new Date(), new Date(), 0, new Date(), Status.PENDING),
-    new Task(3, "Tâche par défaut tres", "Description 3", 1200, new Date(), new Date(), 1199, new Date(), Status.PENDING),
+    makeTask("Tâche par défaut uno", "Description 1", 30, Status.PROGRESS, 1200),
+    makeTask("Tâche par défaut secondo", "Description 2", 20, Status.PENDING, 0),
+    makeTask("Tâche par défaut tres", "Description 3", 20, Status.PENDING, 1199),
   ]);
 
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const activePeriods = cycles[0]?.periods ?? periods;
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
@@ -86,15 +100,15 @@ export function LandingPage() {
     setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + activePeriods.length) % activePeriods.length);
   };
 
-  const handleDeleteCycle = (id: number) => {
+  const handleDeleteCycle = (id: string) => {
     setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
   };
 
-  const handleUpdateCycle = (id: number, updatedPeriods: Period[], newName?: string) => {
+  const handleUpdateCycle = (id: string, updatedPeriods: Period[], newName?: string) => {
     setCycles((prevCycles) =>
-      prevCycles.map((c) => 
-        c.id === id 
-          ? { ...c, periods: updatedPeriods, name: newName ?? c.name } 
+      prevCycles.map((c) =>
+        c.id === id
+          ? { ...c, periods: updatedPeriods, name: newName ?? c.name }
           : c
       )
     );
@@ -106,16 +120,19 @@ export function LandingPage() {
     }
   };
 
-  const handleDuplicateCycle = (id: number) => {
+  const handleDuplicateCycle = (id: string) => {
     const cycleToDuplicate = cycles.find((c) => c.id === id);
     if (!cycleToDuplicate) return;
 
-    const newCycle: CycleType = {
-      id: Date.now(),
+    const newCycleId = crypto.randomUUID();
+    const newCycle: CycleWithPeriods = {
+      ...cycleToDuplicate,
+      id: newCycleId,
       name: `${cycleToDuplicate.name} (Copie)`,
-      periods: cycleToDuplicate.periods.map((p, idx) => ({
+      periods: cycleToDuplicate.periods.map((p) => ({
         ...p,
-        id: Date.now() + idx + Math.random(),
+        id: crypto.randomUUID(),
+        cycle_id: newCycleId,
       })),
     };
 
@@ -123,53 +140,44 @@ export function LandingPage() {
   };
 
   const handleCreateCycle = () => {
-    const newCycle: CycleType = {
-      id: Date.now(),
-      name: `Cycle ${cycles.length + 1}`,
-      periods: [
-        { id: Date.now() + 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: Date.now() + 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-      ],
-    };
+    const newCycle = makeCycle(`Cycle ${cycles.length + 1}`, [
+      [25 * 60, PeriodType.WORK],
+      [5 * 60, PeriodType.REST],
+    ]);
     setCycles((prevCycles) => [...prevCycles, newCycle]);
   };
 
-  const handleSelectCycle = (id: number) => {
+  const handleSelectCycle = (id: string) => {
     const targetCycle = cycles.find((c) => c.id === id);
     if (!targetCycle) return;
-    
+
     const remainingCycles = cycles.filter((c) => c.id !== id);
     const updatedCycles = [targetCycle, ...remainingCycles];
-    
+
     setCycles(updatedCycles);
-    
+
     // Si le cycle sélectionné possède des périodes, on les applique, sinon on met une période par défaut
-    const newPeriods = targetCycle.periods && targetCycle.periods.length > 0 
-      ? targetCycle.periods 
-      : [defaultFallbackPeriod];
+    const newPeriods = targetCycle.periods && targetCycle.periods.length > 0
+      ? targetCycle.periods
+      : [DEFAULT_FALLBACK_PERIOD];
 
     setPeriods(newPeriods);
-    setCurrentPeriodIndex(0); 
+    setCurrentPeriodIndex(0);
   };
 
   const handleTick = () => {
-    if (selectedTaskId !== null && currentPeriod && String(currentPeriod.typePeriode) === "work") {
+    if (selectedTaskId !== null && currentPeriod && currentPeriod.typePeriode === PeriodType.WORK) {
       setTasks((prevTasks) =>
         prevTasks.map((task) => {
           if (task.id === selectedTaskId) {
             const updatedTimeSpent = task.timeSpent + 1;
             const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
-            return new Task(
-              task.id,
-              task.title,
-              task.description,
-              task.estimatedTime,
-              task.creationDate,
-              task.startDate,
-              updatedTimeSpent,
-              task.endDate,
-              isCompleted ? Status.FINISHED : Status.PROGRESS
-            );
+            return {
+              ...task,
+              timeSpent: updatedTimeSpent,
+              status: isCompleted ? Status.FINISHED : Status.PROGRESS,
+              updatedAt: Date.now(),
+            };
           }
           return task;
         })
@@ -177,16 +185,15 @@ export function LandingPage() {
     }
   };
 
-  const handleAddTask = (title: string, hours: number) => {
-    const newTask = new Task(Date.now(), title, "", hours, new Date(), new Date(), 0, new Date(), Status.PENDING);
-    setTasks([...tasks, newTask]);
+  const handleAddTask = (title: string, minutes: number) => {
+    setTasks([...tasks, makeTask(title, "", minutes, Status.PENDING)]);
   };
 
-  const handleEditTask = (id: number, updatedTitle: string, updatedHours: number) => {
+  const handleEditTask = (id: string, updatedTitle: string, updatedMinutes: number) => {
     setTasks(
       tasks.map((t) =>
-        t.id === id 
-          ? new Task(t.id, updatedTitle, t.description, updatedHours, t.creationDate, t.startDate, t.timeSpent, t.endDate, t.status)
+        t.id === id
+          ? { ...t, title: updatedTitle, estimatedTime: updatedMinutes, updatedAt: Date.now() }
           : t
       )
     );
@@ -197,13 +204,13 @@ export function LandingPage() {
     setSelectedTaskId(null);
   };
 
-  const handleToggleComplete = (id: number) => {
+  const handleToggleComplete = (id: string) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === id) {
           const isCurrentlyCompleted = task.status === Status.FINISHED;
           const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? Status.PROGRESS : Status.PENDING) : Status.FINISHED;
-          return new Task(task.id, task.title, task.description, task.estimatedTime, task.creationDate, task.startDate, task.timeSpent, task.endDate, newStatus);
+          return { ...task, status: newStatus, updatedAt: Date.now() };
         }
         return task;
       })
@@ -215,17 +222,17 @@ export function LandingPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-      <Timer 
-        currentPeriod={currentPeriod} 
-        onNext={nextPeriod} 
+      <Timer
+        currentPeriod={currentPeriod}
+        onNext={nextPeriod}
         onPrevious={previousPeriod}
         totalSessionTime={totalSessionTime}
         elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
         onTick={handleTick}
       />
-      
-      <Cycle 
-        currentCycle={currentCycleMock}
+
+      <Cycle
+        currentCycle={cycles[0]}
         currentPeriodIndex={currentPeriodIndex}
         cycles={cycles}
         onDeleteCycle={handleDeleteCycle}
@@ -235,9 +242,9 @@ export function LandingPage() {
         onSelectCycle={handleSelectCycle}
         onSelectPeriodIndex={setCurrentPeriodIndex}
       />
-      
-      <Tasks 
-        tasks={tasks} 
+
+      <Tasks
+        tasks={tasks}
         selectedTaskId={selectedTaskId}
         onSelectTask={setSelectedTaskId}
         onAddTask={handleAddTask}

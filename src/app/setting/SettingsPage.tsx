@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Trash2 } from "lucide-react";
-import type { ParametersType } from "@/model/Parameters";
+import type { Parameters } from "@/model/Parameters";
+
+type ParamsState = Pick<Parameters, "autoStartWork" | "autoStartRest" | "autoRestartCycle" | "notificationsOn">;
 
 type AccountRow = { label: string };
-type ToggleRow = { label: string; key: keyof Omit<ParametersType, "id"> };
+type ToggleRow = { label: string; key: keyof ParamsState };
 
 const ACCOUNT_ROWS: AccountRow[] = [
     { label: "Informations du compte" },
@@ -21,7 +23,7 @@ const TOGGLE_ROWS: ToggleRow[] = [
 ];
 
 export default function SettingsPage() {
-    const [params, setParams] = useState<Omit<ParametersType, "id">>({
+    const [params, setParams] = useState<ParamsState>({
         notificationsOn:   true,
         autoStartWork:     false,
         autoStartRest:     false,

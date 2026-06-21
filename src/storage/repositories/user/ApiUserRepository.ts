@@ -1,6 +1,18 @@
 import type {User} from "@/model/User.ts";
 import type {IUserRepository} from "@/storage/repositories/user/IUserRepository.ts";
 import type {Parameters} from "@/model/Parameters.ts";
+import {apiFetch, parseEntity} from "@/storage/apiFetch.ts";
+import {UserSchema} from "@/storage/schemas.ts";
+
+function withSyncMeta(user: ReturnType<typeof UserSchema.parse>): User {
+    const now = Date.now();
+    return {
+        ...user,
+        parameters: {...user.parameters, updatedAt: now, _syncStatus: 'synced'},
+        updatedAt: now,
+        _syncStatus: 'synced',
+    };
+}
 
 export class ApiUserRepository implements IUserRepository {
     /**
@@ -8,9 +20,10 @@ export class ApiUserRepository implements IUserRepository {
      * @param id The id of the user to retrieve
      */
     async getById(id: string): Promise<User | undefined> {
-        return fetch(`/api/users/${id}`, {
+        const data = await apiFetch(`/api/users/${id}`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(UserSchema, data, id));
     }
 
     /**
@@ -19,11 +32,12 @@ export class ApiUserRepository implements IUserRepository {
      * @param entity The updated user data
      */
     async update(id: string, entity: Partial<User>): Promise<User> {
-        return fetch(`/api/users/${id}`, {
+        const data = await apiFetch(`/api/users/${id}`, {
             method: 'PUT',
             body: JSON.stringify(entity),
             headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(UserSchema, data, id));
     }
 
     /**
@@ -31,9 +45,9 @@ export class ApiUserRepository implements IUserRepository {
      * @param id The id of the user to delete
      */
     async delete(id: string): Promise<void> {
-        return fetch(`/api/users/${id}`, {
+        await apiFetch(`/api/users/${id}`, {
             method: 'DELETE',
-        }).then(res => res.json());
+        });
     }
 
     /**
@@ -42,10 +56,11 @@ export class ApiUserRepository implements IUserRepository {
      * @param parameters The updated parameters
      */
     async updateParameters(id: string, parameters: Partial<Parameters>): Promise<User> {
-        return fetch(`/api/users/${id}/parameters`, {
+        const data = await apiFetch(`/api/users/${id}/parameters`, {
             method: 'PUT',
             body: JSON.stringify(parameters),
             headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(UserSchema, data, id));
     }
 }

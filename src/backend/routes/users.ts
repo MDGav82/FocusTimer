@@ -2,12 +2,46 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 
+export function toUserJson(row: any) {
+  return {
+    id: row.id,
+    email: row.email,
+    parameters: {
+      id: row.parameters_id,
+      autoStartWork: row.auto_start_work,
+      autoStartRest: row.auto_start_rest,
+      autoRestartCycle: row.auto_restart_cycle,
+      notificationsOn: row.notifications_on,
+    },
+  };
+}
+
+export async function getUserById(id: string) {
+  const [row] = await db`
+    SELECT u.id, u.email, u.parameters_id,
+      p.auto_start_work, p.auto_start_rest,
+      p.auto_restart_cycle, p.notifications_on
+    FROM users u
+    JOIN parameters p ON p.id = u.parameters_id
+    WHERE u.id = ${id}
+  `;
+  return row ? toUserJson(row) : null;
+}
+
 export const userRoutes = new Elysia()
   .use(requireAuth)
 
   .get("/api/users", async ({ set }) => {
     try {
-      return await db`SELECT id, email, parameters_id FROM users ORDER BY id ASC`;
+      const rows = await db`
+        SELECT u.id, u.email, u.parameters_id,
+          p.auto_start_work, p.auto_start_rest,
+          p.auto_restart_cycle, p.notifications_on
+        FROM users u
+        JOIN parameters p ON p.id = u.parameters_id
+        ORDER BY u.id ASC
+      `;
+      return rows.map(toUserJson);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -16,14 +50,7 @@ export const userRoutes = new Elysia()
 
   .get("/api/users/:id", async ({ params: { id }, set }) => {
     try {
-      const [user] = await db`
-        SELECT u.id, u.email, u.parameters_id,
-          p.auto_start_work, p.auto_start_rest,
-          p.auto_restart_cycle, p.notifications_on
-        FROM users u
-        JOIN parameters p ON p.id = u.parameters_id
-        WHERE u.id = ${id}
-      `;
+      const user = await getUserById(id);
       if (!user) { set.status = 404; return { error: "User not found" }; }
       return user;
     } catch {
@@ -36,16 +63,16 @@ export const userRoutes = new Elysia()
     const { email, password } = body as { email?: string; password?: string };
     try {
       const hashed = password ? await Bun.password.hash(password) : null;
-      const [user] = await db`
+      const [updated] = await db`
         UPDATE users
         SET
           email    = COALESCE(${email ?? null}, email),
           password = COALESCE(${hashed}, password)
         WHERE id = ${id}
-        RETURNING id, email, parameters_id
+        RETURNING id
       `;
-      if (!user) { set.status = 404; return { error: "User not found" }; }
-      return user;
+      if (!updated) { set.status = 404; return { error: "User not found" }; }
+      return await getUserById(id);
     } catch (err: any) {
       if (err.code === "23505") { set.status = 409; return { error: "Email already in use" }; }
       set.status = 500;
@@ -65,24 +92,24 @@ export const userRoutes = new Elysia()
   })
 
   .put("/api/users/:id/parameters", async ({ params: { id }, body, set }) => {
-    const { auto_start_work, auto_start_rest, auto_restart_cycle, notifications_on } =
+    const { autoStartWork, autoStartRest, autoRestartCycle, notificationsOn } =
       body as any;
     try {
       const [updated] = await db`
         UPDATE parameters p
         SET
-          auto_start_work    = COALESCE(${auto_start_work ?? null}, p.auto_start_work),
-          auto_start_rest    = COALESCE(${auto_start_rest ?? null}, p.auto_start_rest),
-          auto_restart_cycle = COALESCE(${auto_restart_cycle ?? null}, p.auto_restart_cycle),
-          notifications_on   = COALESCE(${notifications_on ?? null}, p.notifications_on)
+          auto_start_work    = COALESCE(${autoStartWork ?? null}, p.auto_start_work),
+          auto_start_rest    = COALESCE(${autoStartRest ?? null}, p.auto_start_rest),
+          auto_restart_cycle = COALESCE(${autoRestartCycle ?? null}, p.auto_restart_cycle),
+          notifications_on   = COALESCE(${notificationsOn ?? null}, p.notifications_on)
         FROM users u
         WHERE u.parameters_id = p.id AND u.id = ${id}
-        RETURNING p.*
+        RETURNING u.id
       `;
       if (!updated) { set.status = 404; return { error: "User not found" }; }
-      return updated;
+      return await getUserById(updated.id);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  });

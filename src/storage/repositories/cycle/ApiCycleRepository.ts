@@ -1,5 +1,11 @@
 import type {Cycle} from "@/model/Cycle.ts";
 import type {ICycleRepository} from "@/storage/repositories/cycle/ICycleRepository.ts";
+import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
+import {CycleSchema} from "@/storage/schemas.ts";
+
+function withSyncMeta(cycle: ReturnType<typeof CycleSchema.parse>): Cycle {
+    return {...cycle, updatedAt: Date.now(), _syncStatus: 'synced'};
+}
 
 export class ApiCycleRepository implements ICycleRepository {
     /**
@@ -7,9 +13,10 @@ export class ApiCycleRepository implements ICycleRepository {
      * @param id The id of the cycle to retrieve
      */
     async getById(id: string): Promise<Cycle | undefined> {
-        return fetch(`/api/cycles/${id}`, {
+        const data = await apiFetch(`/api/cycles/${id}`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(CycleSchema, data, id));
     }
 
     /**
@@ -18,11 +25,12 @@ export class ApiCycleRepository implements ICycleRepository {
      * @param entity The updated cycle data
      */
     async update(id: string, entity: Partial<Cycle>): Promise<Cycle> {
-        return fetch(`/api/cycles/${id}`, {
+        const data = await apiFetch(`/api/cycles/${id}`, {
             method: 'PUT',
             body: JSON.stringify(entity),
             headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(CycleSchema, data, id));
     }
 
     /**
@@ -30,21 +38,23 @@ export class ApiCycleRepository implements ICycleRepository {
      * @param id The id of the cycle to delete
      */
     async delete(id: string): Promise<void> {
-        return fetch(`/api/cycles/${id}`, {
+        await apiFetch(`/api/cycles/${id}`, {
             method: 'DELETE',
-        }).then(res => res.json());
+        });
     }
 
     async createCycleForUser(userId: string, cycle: Cycle): Promise<Cycle> {
-        return fetch(`api/user/${userId}/cycles`, {
+        const data = await apiFetch(`/api/user/${userId}/cycles`, {
             method: 'POST',
             body: JSON.stringify(cycle),
-        }).then(res => res.json());
+        });
+        return withSyncMeta(parseEntity(CycleSchema, data));
     }
 
     async getCyclesForUser(userId: string): Promise<Cycle[]> {
-        return fetch(`/api/user/${userId}/cycles`, {
+        const data = await apiFetch(`/api/user/${userId}/cycles`, {
             method: 'GET',
-        }).then(res => res.json());
+        });
+        return parseEntityList(CycleSchema, data).map(withSyncMeta);
     }
 }

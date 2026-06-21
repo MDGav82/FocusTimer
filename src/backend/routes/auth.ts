@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
+import { getUserById } from "./users";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .use(jwtPlugin)
@@ -24,7 +25,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       const [user] = await db`
         INSERT INTO users (email, password, parameters_id)
         VALUES (${email}, ${hashed}, ${params.id})
-        RETURNING id, email, parameters_id
+        RETURNING id, email
       `;
 
       const token = await jwt.sign({ id: user.id, email: user.email });
@@ -37,7 +38,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       });
 
       set.status = 201;
-      return user;
+      return await getUserById(user.id);
     } catch (err: any) {
       if (err.code === "23505") {
         set.status = 409;
@@ -84,8 +85,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         path: "/",
       });
 
-      const { password: _pw, ...safeUser } = user;
-      return safeUser;
+      return await getUserById(user.id);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -105,7 +105,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   })
 
   // Check auth state — the frontend calls this on startup
-  // Returns { id, email, parameters_id } if logged in, 401 otherwise
+  // Returns { id, email, parameters } if logged in, 401 otherwise
   .get("/me", async ({ jwt, cookie, set }) => {
     const token = cookie.token?.value as string | undefined;
     if (!token) {
@@ -120,9 +120,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     }
 
     try {
-      const [user] = await db`
-        SELECT id, email, parameters_id FROM users WHERE id = ${(payload as any).id}
-      `;
+      const user = await getUserById((payload as any).id);
       if (!user) {
         set.status = 401;
         return { error: "Unauthorized" };
