@@ -7,14 +7,19 @@ import { validateResponse, validateResponseList } from "../validateResponse";
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)
 const PERIOD_TYPE_NAMES = ["work", "break"];
 
+
+function withSyncMeta<T>(row: T) {
+  return { ...row, updatedAt: Date.now(), _syncStatus: "synced" };
+}
+
 function toPeriodJson(row: any) {
-  return {
+  return withSyncMeta({
     id: row.id,
     cycle_id: row.cycle_id,
     time: row.time,
     index: row.index,
     typePeriode: PERIOD_TYPE_NAMES.indexOf(row.type_name),
-  };
+  });
 }
 
 async function getPeriodById(id: string) {
@@ -29,7 +34,7 @@ async function getPeriodById(id: string) {
 
 async function getCycleById(id: string) {
   const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${id}`;
-  return cycle ?? null;
+  return cycle ? withSyncMeta(cycle) : null;
 }
 
 export const cycleRoutes = new Elysia()
@@ -40,7 +45,7 @@ export const cycleRoutes = new Elysia()
       const cycles = await db`
         SELECT id, user_id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
-      return validateResponseList(CycleSchema, cycles);
+      return validateResponseList(CycleSchema, cycles.map(withSyncMeta));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -57,7 +62,7 @@ export const cycleRoutes = new Elysia()
         RETURNING id, user_id, name
       `;
       set.status = 201;
-      return validateResponse(CycleSchema, cycle);
+      return validateResponse(CycleSchema, withSyncMeta(cycle));
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
