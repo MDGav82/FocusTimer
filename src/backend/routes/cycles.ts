@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { CycleSchema, PeriodSchema } from "@/storage/schemas.ts";
+import { CycleSchema, PeriodSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)

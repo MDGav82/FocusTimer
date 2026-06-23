@@ -3,7 +3,7 @@ import { Timer } from "./Timer";
 import { Cycle, type CycleWithPeriods } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
 import { PeriodType, type Period } from "@/model/Period";
-import { Status, type Task } from "@/model/Task";
+import { TaskStatus, type Task } from "@/model/Task";
 
 const MOCK_USER_ID = "mock-user";
 
@@ -31,7 +31,7 @@ function makeCycle(name: string, periodSpecs: Array<[number, PeriodType]>): Cycl
   };
 }
 
-function makeTask(title: string, description: string, estimatedTime: number, status: Status, timeSpent = 0): Task {
+function makeTask(title: string, description: string, estimatedTime: number, status: TaskStatus, timeSpent = 0): Task {
   const now = new Date();
   return {
     id: crypto.randomUUID(),
@@ -77,9 +77,9 @@ export function LandingPage() {
   const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? DEFAULT_FALLBACK_PERIOD;
 
   const [tasks, setTasks] = useState<Task[]>([
-    makeTask("Tâche par défaut uno", "Description 1", 30, Status.PROGRESS, 1200),
-    makeTask("Tâche par défaut secondo", "Description 2", 20, Status.PENDING, 0),
-    makeTask("Tâche par défaut tres", "Description 3", 20, Status.PENDING, 1199),
+    makeTask("Tâche par défaut uno", "Description 1", 30, TaskStatus.PROGRESS, 1200),
+    makeTask("Tâche par défaut secondo", "Description 2", 20, TaskStatus.PENDING, 0),
+    makeTask("Tâche par défaut tres", "Description 3", 20, TaskStatus.PENDING, 1199),
   ]);
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -175,7 +175,7 @@ export function LandingPage() {
             return {
               ...task,
               timeSpent: updatedTimeSpent,
-              status: isCompleted ? Status.FINISHED : Status.PROGRESS,
+              status: isCompleted ? TaskStatus.FINISHED : TaskStatus.PROGRESS,
               updatedAt: Date.now(),
             };
           }
@@ -186,7 +186,7 @@ export function LandingPage() {
   };
 
   const handleAddTask = (title: string, minutes: number) => {
-    setTasks([...tasks, makeTask(title, "", minutes, Status.PENDING)]);
+    setTasks([...tasks, makeTask(title, "", minutes, TaskStatus.PENDING)]);
   };
 
   const handleEditTask = (id: string, updatedTitle: string, updatedMinutes: number) => {
@@ -208,8 +208,8 @@ export function LandingPage() {
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === id) {
-          const isCurrentlyCompleted = task.status === Status.FINISHED;
-          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? Status.PROGRESS : Status.PENDING) : Status.FINISHED;
+          const isCurrentlyCompleted = task.status === TaskStatus.FINISHED;
+          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? TaskStatus.PROGRESS : TaskStatus.PENDING) : TaskStatus.FINISHED;
           return { ...task, status: newStatus, updatedAt: Date.now() };
         }
         return task;

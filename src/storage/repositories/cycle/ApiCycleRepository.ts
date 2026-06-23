@@ -1,11 +1,7 @@
 import type {Cycle} from "@/model/Cycle.ts";
 import type {ICycleRepository} from "@/storage/repositories/cycle/ICycleRepository.ts";
 import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
-import {CycleSchema} from "@/storage/schemas.ts";
-
-function withSyncMeta(cycle: ReturnType<typeof CycleSchema.parse>): Cycle {
-    return {...cycle, updatedAt: Date.now(), _syncStatus: 'synced'};
-}
+import {CycleSchema} from "@/model/schemas.ts";
 
 export class ApiCycleRepository implements ICycleRepository {
     /**
@@ -16,7 +12,7 @@ export class ApiCycleRepository implements ICycleRepository {
         const data = await apiFetch(`/api/cycles/${id}`, {
             method: 'GET',
         });
-        return withSyncMeta(parseEntity(CycleSchema, data, id));
+        return parseEntity(CycleSchema, data, id);
     }
 
     /**
@@ -30,7 +26,7 @@ export class ApiCycleRepository implements ICycleRepository {
             body: JSON.stringify(entity),
             headers: { 'Content-Type': 'application/json' },
         });
-        return withSyncMeta(parseEntity(CycleSchema, data, id));
+        return parseEntity(CycleSchema, data, id);
     }
 
     /**
@@ -48,13 +44,13 @@ export class ApiCycleRepository implements ICycleRepository {
             method: 'POST',
             body: JSON.stringify(cycle),
         });
-        return withSyncMeta(parseEntity(CycleSchema, data));
+        return parseEntity(CycleSchema, data);
     }
 
     async getCyclesForUser(userId: string): Promise<Cycle[]> {
         const data = await apiFetch(`/api/user/${userId}/cycles`, {
             method: 'GET',
         });
-        return parseEntityList(CycleSchema, data).map(withSyncMeta);
+        return parseEntityList(CycleSchema, data);
     }
 }

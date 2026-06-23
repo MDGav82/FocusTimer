@@ -1,7 +1,7 @@
 import type {BaseEntity} from "@/model/BaseEntity.ts";
 import type {StoreOptions} from "@/storage/indexDb.ts";
 
-export enum Status {
+export enum TaskStatus {
     PENDING = 0,
     PROGRESS = 1,
     FINISHED = 2,
@@ -24,7 +24,7 @@ export interface Task extends BaseEntity {
     startDate?: Date;
     timeSpent: number;
     endDate?: Date;
-    status: Status;
+    status: TaskStatus;
 
     user_id: string;
 }

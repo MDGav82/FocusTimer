@@ -13,7 +13,7 @@ import {
   PeriodInputSchema,
   CycleCreateSchema,
   CycleUpdateSchema,
-} from "@/storage/schemas.ts";
+} from "@/model/schemas.ts";
 
 /**
  * Zod is the single source of truth for the shape of the entities the API

@@ -2,7 +2,6 @@ import {GenericHybridRepository} from "@/storage/repositories/GenericHybridRepos
 import type {Cycle} from "@/model/Cycle.ts";
 import {ApiCycleRepository} from "@/storage/repositories/cycle/ApiCycleRepository.ts";
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
-import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 import {IdbCycleRepository} from "@/storage/repositories/cycle/IdbCycleRepository.ts";
 import type {PureEntity} from "@/model/BaseEntity.ts";
 
@@ -14,8 +13,7 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
         const api = new ApiCycleRepository();
         const local = new IdbCycleRepository(db, 'cycle');
         const outbox = new OutboxQueue<Cycle>(db);
-        const connectivity = new ConnectivityService();
-        super(api, local, outbox, connectivity);
+        super(api, local, outbox);
     }
 
     async createCycleForUser(userId: string, pureCycle: Omit<PureEntity<Cycle>, 'user_id'>): Promise<Cycle> {
@@ -29,8 +27,9 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
 
         if (await this.connectivity.canUseApi()) {
             try {
-                const api_cycle = this.api.createCycleForUser(userId, cycle);
+                const api_cycle = this.api.createCycleForUser(userId, { ...cycle, _syncStatus: 'synced'});
                 await this.local.update(cycle.id, { _syncStatus: 'synced' });
+                cycle._syncStatus = 'synced';
                 return api_cycle;
             } catch {
                 // Fallthrough to local storage

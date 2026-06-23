@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Task, Status } from "@/model/Task";
+import { type Task, TaskStatus } from "@/model/Task";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -85,9 +85,9 @@ export function Tasks({
     setEditingTask(null);
   };
 
-  const getStatusLabel = (status: Status) => {
-    if (status === Status.FINISHED) return "Completed";
-    if (status === Status.PROGRESS) return "In Progress";
+  const getStatusLabel = (status: TaskStatus) => {
+    if (status === TaskStatus.FINISHED) return "Completed";
+    if (status === TaskStatus.PROGRESS) return "In Progress";
     return "Todo";
   };
 
@@ -126,7 +126,7 @@ export function Tasks({
         ) : (
           tasks.map((task) => {
             const isSelected = task.id === selectedTaskId;
-            const isCompleted = task.status === Status.FINISHED;
+            const isCompleted = task.status === TaskStatus.FINISHED;
 
             return (
               <div
@@ -152,7 +152,7 @@ export function Tasks({
                       className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         isCompleted
                           ? "bg-emerald-500/10 text-emerald-400"
-                          : task.status === Status.PROGRESS
+                          : task.status === TaskStatus.PROGRESS
                           ? "bg-amber-500/10 text-amber-400"
                           : "bg-slate-700 text-slate-400"
                       }`}

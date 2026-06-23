@@ -5,18 +5,18 @@ import type {Parameters} from "@/model/Parameters.ts";
 import {ApiUserRepository} from "@/storage/repositories/user/ApiUserRepository.ts";
 import {IdbUserRepository} from "@/storage/repositories/user/IdbUserRepository.ts";
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
-import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 
 export class HybridUserRepositor extends GenericHybridRepository<User> implements IUserRepository {
     protected declare api: ApiUserRepository;
     protected declare local: IdbUserRepository;
+    protected declare paramOutbox: OutboxQueue<Parameters>
 
     constructor(db: IDBDatabase) {
         const api = new ApiUserRepository();
         const local = new IdbUserRepository(db, 'user');
         const outbox = new OutboxQueue<User>(db);
-        const connectivity = new ConnectivityService();
-        super(api, local, outbox, connectivity);
+        super(api, local, outbox);
+        this.paramOutbox = new OutboxQueue<Parameters>(db);
     }
 
     async updateParameters(id: string, parameters: Partial<Parameters>): Promise<User> {
@@ -34,9 +34,9 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
             }
         }
 
-        return this.outbox.enqueue({
+        return this.paramOutbox.enqueue({
             op: 'UPDATE',
-            entity: 'user',
+            entity: 'parameters',
             entityId: id,
             payload: parameters,
         }).then(() => user)

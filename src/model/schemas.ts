@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PeriodType } from "@/model/Period.ts";
-import { Status } from "@/model/Task.ts";
+import { TaskStatus } from "@/model/Task.ts";
 
 /**
  * These schemas describe what the API actually sends over the wire — not the
@@ -8,18 +8,24 @@ import { Status } from "@/model/Task.ts";
  * server never tracks; Api*Repository stamps them in after validation.
  */
 
+const SyncStatus = ['synced', 'pending', 'conflict'] as const
+
 export const ParametersSchema = z.object({
     id: z.string(),
     autoStartWork: z.boolean(),
     autoStartRest: z.boolean(),
     autoRestartCycle: z.boolean(),
     notificationsOn: z.boolean(),
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 export const UserSchema = z.object({
     id: z.string(),
     email: z.string(),
     parameters: ParametersSchema,
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 export const PeriodSchema = z.object({
@@ -28,13 +34,16 @@ export const PeriodSchema = z.object({
     time: z.number(),
     index: z.number(),
     typePeriode: z.enum(PeriodType).meta({ description: "PeriodType enum: 0 = WORK, 1 = REST" }),
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 export const CycleSchema = z.object({
     id: z.string(),
     user_id: z.string(),
     name: z.string(),
-    periods: z.array(PeriodSchema),
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 export const TaskSchema = z.object({
@@ -48,7 +57,9 @@ export const TaskSchema = z.object({
     creationDate: z.coerce.date(),
     startDate: z.coerce.date().nullable().transform(v => v ?? undefined),
     endDate: z.coerce.date().nullable().transform(v => v ?? undefined),
-    status: z.enum(Status).meta({ description: "Status enum: 0 = PENDING, 1 = PROGRESS, 2 = FINISHED" }),
+    status: z.enum(TaskStatus).meta({ description: "Status enum: 0 = PENDING, 1 = PROGRESS, 2 = FINISHED" }),
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 /**
@@ -61,6 +72,8 @@ export const TaskSchema = z.object({
 export const AuthCredentialsSchema = z.object({
     email: z.email(),
     password: z.string().min(1),
+    updatedAt: z.number(),
+    _syncStatus: z.enum(SyncStatus),
 });
 
 export const UserUpdateSchema = z.object({
@@ -84,7 +97,7 @@ export const TaskCreateSchema = z.object({
 export const TaskUpdateSchema = z.object({
     title: z.string().optional(),
     description: z.string().optional(),
-    status: z.enum(Status).meta({ description: "Status enum: 0 = pending, 1 = progress, 2 = finished" }).optional(),
+    status: z.enum(TaskStatus).meta({ description: "Status enum: 0 = pending, 1 = progress, 2 = finished" }).optional(),
     estimatedTime: z.number().optional(),
     progress: z.number().optional(),
     timeSpent: z.number().optional(),

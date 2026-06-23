@@ -1,4 +1,4 @@
-import { type Task, Status } from "@/model/Task";
+import { type Task, TaskStatus } from "@/model/Task";
 import {
     ChartContainer,
     ChartTooltip,
@@ -10,7 +10,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { CheckCircle2, Clock, Zap } from "lucide-react";
 
-function makeMockTask(id: string, title: string, estimatedTime: number, timeSpent: number, status: Status): Task {
+function makeMockTask(id: string, title: string, estimatedTime: number, timeSpent: number, status: TaskStatus): Task {
     const now = new Date();
     return {
         id, title, description: "", estimatedTime, creationDate: now, startDate: now, timeSpent, endDate: now, status,
@@ -19,11 +19,11 @@ function makeMockTask(id: string, title: string, estimatedTime: number, timeSpen
 }
 
 const MOCK_TASKS: Task[] = [
-    makeMockTask("mock-1", "Conception UI",   90,  5700, Status.FINISHED),
-    makeMockTask("mock-2", "Intégration API", 120, 6900, Status.FINISHED),
-    makeMockTask("mock-3", "Tests unitaires", 60,  2100, Status.FINISHED),
-    makeMockTask("mock-4", "Documentation",   45,  0,    Status.PENDING),
-    makeMockTask("mock-5", "Refactoring",     30,  2520, Status.PENDING),
+    makeMockTask("mock-1", "Conception UI",   90,  5700, TaskStatus.FINISHED),
+    makeMockTask("mock-2", "Intégration API", 120, 6900, TaskStatus.FINISHED),
+    makeMockTask("mock-3", "Tests unitaires", 60,  2100, TaskStatus.FINISHED),
+    makeMockTask("mock-4", "Documentation",   45,  0,    TaskStatus.PENDING),
+    makeMockTask("mock-5", "Refactoring",     30,  2520, TaskStatus.PENDING),
 ];
 
 const POMODORO_DURATION = 25 * 60;
@@ -62,7 +62,7 @@ const STATUS_BAR_COLOR: Record<EstimationStatus, string> = {
 export default function DashboardPage() {
     const tasks = MOCK_TASKS;
 
-    const finishedTasks = tasks.filter(t => t.status === Status.FINISHED);
+    const finishedTasks = tasks.filter(t => t.status === TaskStatus.FINISHED);
     const successRate = tasks.length > 0
         ? Math.round((finishedTasks.length / tasks.length) * 100)
         : 0;

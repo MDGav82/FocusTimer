@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
 import { getUserById } from "./users";
-import { UserSchema } from "@/storage/schemas.ts";
+import { UserSchema } from "@/model/schemas.ts";
 import { validateResponse } from "../validateResponse";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })

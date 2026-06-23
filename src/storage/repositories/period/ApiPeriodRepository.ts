@@ -1,11 +1,7 @@
 import type {Period} from "@/model/Period.ts";
 import type {IPeriodRepository} from "@/storage/repositories/period/IPeriodRepository.ts";
 import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
-import {PeriodSchema} from "@/storage/schemas.ts";
-
-function withSyncMeta(period: ReturnType<typeof PeriodSchema.parse>): Period {
-    return {...period, updatedAt: Date.now(), _syncStatus: 'synced'};
-}
+import {PeriodSchema} from "@/model/schemas.ts";
 
 export class ApiPeriodRepository implements IPeriodRepository {
     /**
@@ -16,7 +12,7 @@ export class ApiPeriodRepository implements IPeriodRepository {
         const data = await apiFetch(`/api/periods/${id}`, {
             method: 'GET',
         });
-        return withSyncMeta(parseEntity(PeriodSchema, data, id));
+        return parseEntity(PeriodSchema, data, id);
     }
 
     /**
@@ -29,7 +25,7 @@ export class ApiPeriodRepository implements IPeriodRepository {
             method: 'PUT',
             body: JSON.stringify(entity),
         });
-        return withSyncMeta(parseEntity(PeriodSchema, data, id));
+        return parseEntity(PeriodSchema, data, id);
     }
 
     /**
@@ -47,13 +43,13 @@ export class ApiPeriodRepository implements IPeriodRepository {
             method: 'POST',
             body: JSON.stringify(period),
         });
-        return withSyncMeta(parseEntity(PeriodSchema, data));
+        return parseEntity(PeriodSchema, data);
     }
 
     async getPeriodsForCycle(cycleId: string): Promise<Period[]> {
         const data = await apiFetch(`/api/cycles/${cycleId}/periods`, {
             method: 'GET',
         });
-        return parseEntityList(PeriodSchema, data).map(withSyncMeta);
+        return parseEntityList(PeriodSchema, data);
     }
 }

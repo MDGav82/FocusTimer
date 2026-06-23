@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { TaskSchema } from "@/storage/schemas.ts";
+import { TaskSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend Status enum (PENDING=0, PROGRESS=1, FINISHED=2)

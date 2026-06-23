@@ -4,7 +4,6 @@ import type {IPeriodRepository} from "@/storage/repositories/period/IPeriodRepos
 import {ApiPeriodRepository} from "@/storage/repositories/period/ApiPeriodRepository.ts";
 import {IdbPeriodRepository} from "@/storage/repositories/period/IdbPeriodRepository.ts";
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
-import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 import type {PureEntity} from "@/model/BaseEntity.ts";
 
 export class HybridPeriodRepository extends GenericHybridRepository<Period> implements IPeriodRepository {
@@ -15,8 +14,7 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
         const api = new ApiPeriodRepository();
         const local = new IdbPeriodRepository(db, 'period');
         const outbox = new OutboxQueue<Period>(db);
-        const connectivity = new ConnectivityService();
-        super(api, local, outbox, connectivity);
+        super(api, local, outbox);
     }
 
     async createPeriodForCycle(cycleId: string, purePeriod: Omit<PureEntity<Period>, 'cycle_id'>): Promise<Period> {
@@ -30,8 +28,9 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
 
         if (await this.connectivity.canUseApi()) {
             try {
-                const api_period = this.api.createPeriodForCycle(cycleId, period);
+                const api_period = this.api.createPeriodForCycle(cycleId, { ...period, _syncStatus: 'synced' });
                 await this.local.update(period.id, { _syncStatus: 'synced' });
+                period._syncStatus = 'synced';
                 return api_period;
             } catch {
                 // Fallthrough to local storage

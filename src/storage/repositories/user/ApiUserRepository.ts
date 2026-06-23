@@ -2,17 +2,7 @@ import type {User} from "@/model/User.ts";
 import type {IUserRepository} from "@/storage/repositories/user/IUserRepository.ts";
 import type {Parameters} from "@/model/Parameters.ts";
 import {apiFetch, parseEntity} from "@/storage/apiFetch.ts";
-import {UserSchema} from "@/storage/schemas.ts";
-
-function withSyncMeta(user: ReturnType<typeof UserSchema.parse>): User {
-    const now = Date.now();
-    return {
-        ...user,
-        parameters: {...user.parameters, updatedAt: now, _syncStatus: 'synced'},
-        updatedAt: now,
-        _syncStatus: 'synced',
-    };
-}
+import {UserSchema} from "@/model/schemas.ts";
 
 export class ApiUserRepository implements IUserRepository {
     /**
@@ -23,7 +13,7 @@ export class ApiUserRepository implements IUserRepository {
         const data = await apiFetch(`/api/users/${id}`, {
             method: 'GET',
         });
-        return withSyncMeta(parseEntity(UserSchema, data, id));
+        return parseEntity(UserSchema, data, id);
     }
 
     /**
@@ -37,7 +27,7 @@ export class ApiUserRepository implements IUserRepository {
             body: JSON.stringify(entity),
             headers: { 'Content-Type': 'application/json' },
         });
-        return withSyncMeta(parseEntity(UserSchema, data, id));
+        return parseEntity(UserSchema, data, id);
     }
 
     /**
@@ -61,6 +51,6 @@ export class ApiUserRepository implements IUserRepository {
             body: JSON.stringify(parameters),
             headers: { 'Content-Type': 'application/json' },
         });
-        return withSyncMeta(parseEntity(UserSchema, data, id));
+        return parseEntity(UserSchema, data, id);
     }
 }

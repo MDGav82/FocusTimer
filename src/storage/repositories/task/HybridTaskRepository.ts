@@ -2,7 +2,6 @@ import {GenericHybridRepository} from "@/storage/repositories/GenericHybridRepos
 import type {Task} from "@/model/Task.ts";
 import type {ITaskRepository} from "@/storage/repositories/task/ITaskRepository.ts";
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
-import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 import {ApiTaskRepository} from "@/storage/repositories/task/ApiTaskRepository.ts";
 import {IdbTaskRepository} from "@/storage/repositories/task/IdbTaskRepository.ts";
 import type {PureEntity} from "@/model/BaseEntity.ts";
@@ -15,8 +14,7 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
         const api = new ApiTaskRepository();
         const local = new IdbTaskRepository(db, 'task');
         const outbox = new OutboxQueue<Task>(db);
-        const connectivity = new ConnectivityService();
-        super(api, local, outbox, connectivity);
+        super(api, local, outbox);
     }
 
     async createTaskForUser(userId: string, pureTask: Omit<PureEntity<Task>, 'user_id'>): Promise<Task> {
@@ -30,8 +28,9 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
 
         if (await this.connectivity.canUseApi()) {
             try {
-                const api_task = this.api.createTaskForUser(userId, task);
+                const api_task = this.api.createTaskForUser(userId, { ...task, _syncStatus: 'synced' });
                 await this.local.update(task.id, { _syncStatus: 'synced' });
+                task._syncStatus = 'synced'
                 return api_task;
             } catch {
                 // Fallthrough to local storage

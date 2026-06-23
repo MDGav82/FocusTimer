@@ -1,11 +1,8 @@
 import type {Task} from "@/model/Task.ts";
 import type {ITaskRepository} from "@/storage/repositories/task/ITaskRepository.ts";
 import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
-import {TaskSchema} from "@/storage/schemas.ts";
+import {TaskSchema} from "@/model/schemas.ts";
 
-function withSyncMeta(task: ReturnType<typeof TaskSchema.parse>): Task {
-    return {...task, updatedAt: Date.now(), _syncStatus: 'synced'};
-}
 
 export class ApiTaskRepository implements ITaskRepository {
     /**
@@ -16,7 +13,7 @@ export class ApiTaskRepository implements ITaskRepository {
         const data = await apiFetch(`/api/task/${id}`, {
             method: 'GET',
         });
-        return withSyncMeta(parseEntity(TaskSchema, data, id));
+        return parseEntity(TaskSchema, data, id);
     }
 
     /**
@@ -29,7 +26,7 @@ export class ApiTaskRepository implements ITaskRepository {
             method: 'PUT',
             body: JSON.stringify(entity),
         });
-        return withSyncMeta(parseEntity(TaskSchema, data, id));
+        return parseEntity(TaskSchema, data, id);
     }
 
     /**
@@ -47,13 +44,13 @@ export class ApiTaskRepository implements ITaskRepository {
             method: 'POST',
             body: JSON.stringify(task),
         });
-        return withSyncMeta(parseEntity(TaskSchema, data));
+        return parseEntity(TaskSchema, data);
     }
 
     async getTasksForUser(userId: string): Promise<Task[]> {
         const data = await apiFetch(`/api/user/${userId}/tasks`, {
             method: 'GET',
         });
-        return parseEntityList(TaskSchema, data).map(withSyncMeta);
+        return parseEntityList(TaskSchema, data);
     }
 }
