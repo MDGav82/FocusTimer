@@ -274,7 +274,7 @@ const openApiSpec = {
     "/api/users/{id}/cycles": {
       get: {
         tags: ["Cycles"],
-        summary: "Get all cycles with periods for a user",
+        summary: "Get all cycles for a user",
         security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
@@ -301,7 +301,7 @@ const openApiSpec = {
     "/api/cycles/{id}": {
       get: {
         tags: ["Cycles"],
-        summary: "Get a cycle with its periods",
+        summary: "Get a cycle",
         security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
@@ -312,7 +312,7 @@ const openApiSpec = {
       },
       put: {
         tags: ["Cycles"],
-        summary: "Update a cycle name and/or replace its periods",
+        summary: "Update a cycle name",
         security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         requestBody: {

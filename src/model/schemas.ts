@@ -113,10 +113,8 @@ export const PeriodInputSchema = z.object({
 
 export const CycleCreateSchema = z.object({
     name: z.string(),
-    periods: z.array(PeriodInputSchema).optional(),
 });
 
 export const CycleUpdateSchema = z.object({
     name: z.string().optional(),
-    periods: z.array(PeriodInputSchema).meta({ description: "Replaces all existing periods when provided" }).optional(),
 });

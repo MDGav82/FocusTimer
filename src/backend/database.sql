@@ -19,7 +19,7 @@ CREATE TABLE parameters (
 
 
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY,
   email         VARCHAR(255) NOT NULL UNIQUE,
   password      VARCHAR(255),
   parameters_id INTEGER NOT NULL REFERENCES parameters(id) ON DELETE CASCADE
@@ -27,7 +27,7 @@ CREATE TABLE users (
 
 
 CREATE TABLE task (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID PRIMARY KEY,
   user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status_id      INTEGER NOT NULL REFERENCES status(id),
   title          VARCHAR(255) NOT NULL,
@@ -41,14 +41,14 @@ CREATE TABLE task (
 );
 
 CREATE TABLE cycle (
-  id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id      UUID PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name    VARCHAR(255) NOT NULL
 );
 
 
 CREATE TABLE period (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              UUID PRIMARY KEY,
   cycle_id        UUID NOT NULL REFERENCES cycle(id) ON DELETE CASCADE,
   type_periode_id INTEGER NOT NULL REFERENCES type_periode(id),
   time            INTEGER NOT NULL,

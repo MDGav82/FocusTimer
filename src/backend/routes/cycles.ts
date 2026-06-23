@@ -7,8 +7,6 @@ import { validateResponse, validateResponseList } from "../validateResponse";
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)
 const PERIOD_TYPE_NAMES = ["work", "break"];
 
-type PeriodInput = { typePeriode: number; time: number; index: number };
-
 function toPeriodJson(row: any) {
   return {
     id: row.id,
@@ -29,18 +27,9 @@ async function getPeriodById(id: string) {
   return row ? toPeriodJson(row) : null;
 }
 
-async function getCycleWithPeriods(id: string) {
+async function getCycleById(id: string) {
   const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${id}`;
-  if (!cycle) return null;
-
-  const periods = await db`
-    SELECT p.id, p.cycle_id, p.time, p.index, tp.name AS type_name
-    FROM period p
-    JOIN type_periode tp ON tp.id = p.type_periode_id
-    WHERE p.cycle_id = ${id}
-    ORDER BY p.index ASC
-  `;
-  return { ...cycle, periods: periods.map(toPeriodJson) };
+  return cycle ?? null;
 }
 
 export const cycleRoutes = new Elysia()
@@ -49,10 +38,9 @@ export const cycleRoutes = new Elysia()
   .get("/api/users/:id/cycles", async ({ params: { id }, set }) => {
     try {
       const cycles = await db`
-        SELECT id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
+        SELECT id, user_id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
-      const result = await Promise.all(cycles.map((c: { id: string }) => getCycleWithPeriods(c.id)));
-      return validateResponseList(CycleSchema, result);
+      return validateResponseList(CycleSchema, cycles);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -60,24 +48,16 @@ export const cycleRoutes = new Elysia()
   })
 
   .post("/api/users/:id/cycles", async ({ params: { id }, body, set }) => {
-    const { id: cycleId, name, periods } = body as any;
+    const { id: cycleId, name } = body as any;
     if (!name) { set.status = 400; return { error: "Name is required" }; }
     try {
       const [cycle] = await db`
         INSERT INTO cycle (id, user_id, name)
         VALUES (COALESCE(${cycleId ?? null}, gen_random_uuid()), ${id}, ${name})
-        RETURNING id, name
+        RETURNING id, user_id, name
       `;
-      if (Array.isArray(periods) && periods.length > 0) {
-        for (const p of periods as PeriodInput[]) {
-          await db`
-            INSERT INTO period (cycle_id, type_periode_id, time, index)
-            VALUES (${cycle.id}, (SELECT id FROM type_periode WHERE name = ${PERIOD_TYPE_NAMES[p.typePeriode]}), ${p.time}, ${p.index})
-          `;
-        }
-      }
       set.status = 201;
-      return validateResponse(CycleSchema, await getCycleWithPeriods(cycle.id));
+      return validateResponse(CycleSchema, cycle);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
@@ -86,7 +66,7 @@ export const cycleRoutes = new Elysia()
 
   .get("/api/cycles/:id", async ({ params: { id }, set }) => {
     try {
-      const cycle = await getCycleWithPeriods(id);
+      const cycle = await getCycleById(id);
       if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
       return validateResponse(CycleSchema, cycle);
     } catch {
@@ -96,7 +76,7 @@ export const cycleRoutes = new Elysia()
   })
 
   .put("/api/cycles/:id", async ({ params: { id }, body, set }) => {
-    const { name, periods } = body as any;
+    const { name } = body as any;
     try {
       if (name !== undefined) {
         const [updated] = await db`
@@ -104,16 +84,7 @@ export const cycleRoutes = new Elysia()
         `;
         if (!updated) { set.status = 404; return { error: "Cycle not found" }; }
       }
-      if (Array.isArray(periods)) {
-        await db`DELETE FROM period WHERE cycle_id = ${id}`;
-        for (const p of periods as PeriodInput[]) {
-          await db`
-            INSERT INTO period (cycle_id, type_periode_id, time, index)
-            VALUES (${id}, (SELECT id FROM type_periode WHERE name = ${PERIOD_TYPE_NAMES[p.typePeriode]}), ${p.time}, ${p.index})
-          `;
-        }
-      }
-      const result = await getCycleWithPeriods(id);
+      const result = await getCycleById(id);
       if (!result) { set.status = 404; return { error: "Cycle not found" }; }
       return validateResponse(CycleSchema, result);
     } catch {
