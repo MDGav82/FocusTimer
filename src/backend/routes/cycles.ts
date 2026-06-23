@@ -8,8 +8,11 @@ import { validateResponse, validateResponseList } from "../validateResponse";
 const PERIOD_TYPE_NAMES = ["work", "break"];
 
 
-function withSyncMeta<T>(row: T) {
-  return { ...row, updatedAt: Date.now(), _syncStatus: "synced" };
+// Maps the persisted `updated_at` (epoch ms) to `updatedAt` and stamps the
+// client-only `_syncStatus`, dropping the snake_case column from the response.
+function withSyncMeta<T extends { updated_at?: unknown }>(row: T) {
+  const { updated_at, ...rest } = row as any;
+  return { ...rest, updatedAt: Number(updated_at), _syncStatus: "synced" };
 }
 
 function toPeriodJson(row: any) {
@@ -19,12 +22,13 @@ function toPeriodJson(row: any) {
     time: row.time,
     index: row.index,
     typePeriode: PERIOD_TYPE_NAMES.indexOf(row.type_name),
+    updated_at: row.updated_at,
   });
 }
 
 async function getPeriodById(id: string) {
   const [row] = await db`
-    SELECT p.id, p.cycle_id, p.time, p.index, tp.name AS type_name
+    SELECT p.id, p.cycle_id, p.time, p.index, p.updated_at, tp.name AS type_name
     FROM period p
     JOIN type_periode tp ON tp.id = p.type_periode_id
     WHERE p.id = ${id}
@@ -33,7 +37,7 @@ async function getPeriodById(id: string) {
 }
 
 async function getCycleById(id: string) {
-  const [cycle] = await db`SELECT id, user_id, name FROM cycle WHERE id = ${id}`;
+  const [cycle] = await db`SELECT id, user_id, name, updated_at FROM cycle WHERE id = ${id}`;
   return cycle ? withSyncMeta(cycle) : null;
 }
 
@@ -43,7 +47,7 @@ export const cycleRoutes = new Elysia()
   .get("/api/users/:id/cycles", async ({ params: { id }, set }) => {
     try {
       const cycles = await db`
-        SELECT id, user_id, name FROM cycle WHERE user_id = ${id} ORDER BY id ASC
+        SELECT id, user_id, name, updated_at FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
       return validateResponseList(CycleSchema, cycles.map(withSyncMeta));
     } catch {
@@ -59,7 +63,7 @@ export const cycleRoutes = new Elysia()
       const [cycle] = await db`
         INSERT INTO cycle (id, user_id, name)
         VALUES (COALESCE(${cycleId ?? null}, gen_random_uuid()), ${id}, ${name})
-        RETURNING id, user_id, name
+        RETURNING id, user_id, name, updated_at
       `;
       set.status = 201;
       return validateResponse(CycleSchema, withSyncMeta(cycle));
@@ -85,7 +89,9 @@ export const cycleRoutes = new Elysia()
     try {
       if (name !== undefined) {
         const [updated] = await db`
-          UPDATE cycle SET name = ${name} WHERE id = ${id} RETURNING id
+          UPDATE cycle
+          SET name = ${name}, updated_at = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+          WHERE id = ${id} RETURNING id
         `;
         if (!updated) { set.status = 404; return { error: "Cycle not found" }; }
       }
@@ -114,7 +120,7 @@ export const cycleRoutes = new Elysia()
       const [cycle] = await db`SELECT id FROM cycle WHERE id = ${id}`;
       if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
       const periods = await db`
-        SELECT p.id, p.cycle_id, p.time, p.index, tp.name AS type_name
+        SELECT p.id, p.cycle_id, p.time, p.index, p.updated_at, tp.name AS type_name
         FROM period p
         JOIN type_periode tp ON tp.id = p.type_periode_id
         WHERE p.cycle_id = ${id}
@@ -172,7 +178,8 @@ export const cycleRoutes = new Elysia()
         SET
           type_periode_id = COALESCE((SELECT id FROM type_periode WHERE name = ${typeName ?? null}), type_periode_id),
           time            = COALESCE(${time ?? null}, time),
-          index           = COALESCE(${index ?? null}, index)
+          index           = COALESCE(${index ?? null}, index),
+          updated_at      = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
         WHERE id = ${id}
         RETURNING id
       `;

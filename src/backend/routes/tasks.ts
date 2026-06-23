@@ -20,13 +20,16 @@ function toTaskJson(row: any) {
     startDate: row.start_date,
     endDate: row.end_date,
     status: STATUS_NAMES.indexOf(row.status_name),
+    updatedAt: Number(row.updated_at),
+    _syncStatus: "synced",
   };
 }
 
 async function getTaskById(id: string) {
   const [row] = await db`
     SELECT t.id, t.user_id, t.title, t.description, t.estimated_time, t.progress,
-           t.time_spent, t.creation_date, t.start_date, t.end_date, s.name AS status_name
+           t.time_spent, t.creation_date, t.start_date, t.end_date, t.updated_at,
+           s.name AS status_name
     FROM task t
     JOIN status s ON s.id = t.status_id
     WHERE t.id = ${id}
@@ -41,7 +44,8 @@ export const taskRoutes = new Elysia()
     try {
       const rows = await db`
         SELECT t.id, t.user_id, t.title, t.description, t.estimated_time, t.progress,
-               t.time_spent, t.creation_date, t.start_date, t.end_date, s.name AS status_name
+               t.time_spent, t.creation_date, t.start_date, t.end_date, t.updated_at,
+               s.name AS status_name
         FROM task t
         JOIN status s ON s.id = t.status_id
         WHERE t.user_id = ${id}
@@ -106,7 +110,8 @@ export const taskRoutes = new Elysia()
           progress       = COALESCE(${progress ?? null}, progress),
           time_spent     = COALESCE(${timeSpent ?? null}, time_spent),
           start_date     = COALESCE(${startDate ?? null}, start_date),
-          end_date       = COALESCE(${endDate ?? null}, end_date)
+          end_date       = COALESCE(${endDate ?? null}, end_date),
+          updated_at     = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
         WHERE id = ${id}
         RETURNING id
       `;

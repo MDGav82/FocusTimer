@@ -25,8 +25,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       `;
 
       const [user] = await db`
-        INSERT INTO users (email, password, parameters_id)
-        VALUES (${email}, ${hashed}, ${params.id})
+        INSERT INTO users (id, email, password, parameters_id)
+        VALUES (${crypto.randomUUID()}, ${email}, ${hashed}, ${params.id})
         RETURNING id, email
       `;
 

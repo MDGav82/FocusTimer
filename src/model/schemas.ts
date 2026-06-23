@@ -3,9 +3,11 @@ import { PeriodType } from "@/model/Period.ts";
 import { TaskStatus } from "@/model/Task.ts";
 
 /**
- * These schemas describe what the API actually sends over the wire — not the
- * full BaseEntity. `updatedAt`/`_syncStatus` are local sync bookkeeping the
- * server never tracks; Api*Repository stamps them in after validation.
+ * These schemas describe what the API actually sends over the wire — they match
+ * the frontend BaseEntity. `updatedAt` is persisted server-side (epoch ms) and
+ * drives last-write-wins conflict resolution. `_syncStatus` is local per-device
+ * bookkeeping the server doesn't truly own, but every response stamps it
+ * 'synced' (the data just came from the server), so it is always present.
  */
 
 const SyncStatus = ['synced', 'pending', 'conflict'] as const
@@ -72,8 +74,6 @@ export const TaskSchema = z.object({
 export const AuthCredentialsSchema = z.object({
     email: z.email(),
     password: z.string().min(1),
-    updatedAt: z.number(),
-    _syncStatus: z.enum(SyncStatus),
 });
 
 export const UserUpdateSchema = z.object({

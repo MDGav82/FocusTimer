@@ -14,15 +14,20 @@ export function toUserJson(row: any) {
       autoStartRest: row.auto_start_rest,
       autoRestartCycle: row.auto_restart_cycle,
       notificationsOn: row.notifications_on,
+      updatedAt: Number(row.parameters_updated_at),
+      _syncStatus: "synced",
     },
+    updatedAt: Number(row.updated_at),
+    _syncStatus: "synced",
   };
 }
 
 export async function getUserById(id: string) {
   const [row] = await db`
-    SELECT u.id, u.email, u.parameters_id,
+    SELECT u.id, u.email, u.parameters_id, u.updated_at,
       p.auto_start_work, p.auto_start_rest,
-      p.auto_restart_cycle, p.notifications_on
+      p.auto_restart_cycle, p.notifications_on,
+      p.updated_at AS parameters_updated_at
     FROM users u
     JOIN parameters p ON p.id = u.parameters_id
     WHERE u.id = ${id}
@@ -36,9 +41,10 @@ export const userRoutes = new Elysia()
   .get("/api/users", async ({ set }) => {
     try {
       const rows = await db`
-        SELECT u.id, u.email, u.parameters_id,
+        SELECT u.id, u.email, u.parameters_id, u.updated_at,
           p.auto_start_work, p.auto_start_rest,
-          p.auto_restart_cycle, p.notifications_on
+          p.auto_restart_cycle, p.notifications_on,
+          p.updated_at AS parameters_updated_at
         FROM users u
         JOIN parameters p ON p.id = u.parameters_id
         ORDER BY u.id ASC
@@ -68,8 +74,9 @@ export const userRoutes = new Elysia()
       const [updated] = await db`
         UPDATE users
         SET
-          email    = COALESCE(${email ?? null}, email),
-          password = COALESCE(${hashed}, password)
+          email      = COALESCE(${email ?? null}, email),
+          password   = COALESCE(${hashed}, password),
+          updated_at = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
         WHERE id = ${id}
         RETURNING id
       `;
@@ -103,7 +110,8 @@ export const userRoutes = new Elysia()
           auto_start_work    = COALESCE(${autoStartWork ?? null}, p.auto_start_work),
           auto_start_rest    = COALESCE(${autoStartRest ?? null}, p.auto_start_rest),
           auto_restart_cycle = COALESCE(${autoRestartCycle ?? null}, p.auto_restart_cycle),
-          notifications_on   = COALESCE(${notificationsOn ?? null}, p.notifications_on)
+          notifications_on   = COALESCE(${notificationsOn ?? null}, p.notifications_on),
+          updated_at         = (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
         FROM users u
         WHERE u.parameters_id = p.id AND u.id = ${id}
         RETURNING u.id

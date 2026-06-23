@@ -2,9 +2,10 @@
 left to right direction
 
 class User {
-  +id : int
+  +id : UUID
   +email : string
   +password : string
+  +updatedAt : long
 }
 
 class Parameters {
@@ -13,10 +14,11 @@ class Parameters {
   +autostartRest : bool
   +autoRestartCycle : bool
   +notificationsOn : bool
+  +updatedAt : long
 }
 
 class Task {
-  +id : int
+  +id : UUID
   +title : string
   +description : string
   +estimatedTime : int
@@ -25,6 +27,7 @@ class Task {
   +startDate : DateTime
   +timeSpent : int
   +endDate : DateTime
+  +updatedAt : long
 }
 
 class History {
@@ -34,8 +37,9 @@ class History {
 }
 
 class Cycle {
-  +id : int
+  +id : UUID
   +name : string
+  +updatedAt : long
 }
 
 class TypePeriode {
@@ -44,9 +48,10 @@ class TypePeriode {
 }
 
 class Period {
-  +id : int
+  +id : UUID
   +time : int
   +index : int
+  +updatedAt : long
 }
 
 class Status {
