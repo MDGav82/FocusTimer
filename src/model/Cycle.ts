@@ -1,6 +1,8 @@
 import type {BaseEntity} from "@/model/BaseEntity.ts";
 import type {StoreOptions} from "@/storage/indexDb.ts";
 
+export const defaultCycle = { name: "Cycle par défaut" };
+
 export const CycleStoreOptions: StoreOptions = {
     name: 'cycle',
     keyPath: 'id',

@@ -138,13 +138,13 @@ export function idbGet<T extends BaseEntity>(
     db: IDBDatabase,
     storeName: string,
     id: IDBValidKey
-): Promise<T> {
+): Promise<T | undefined> {
     return idbTransaction(
         db,
         storeName,
         'readonly',
         s => s.get(id)
-    ) as Promise<T>
+    ) as Promise<T | undefined>
 }
 
 export function idbUpdate<T extends BaseEntity>(

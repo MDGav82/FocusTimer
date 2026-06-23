@@ -1,10 +1,25 @@
-import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {BaseEntity, PureEntity} from "@/model/BaseEntity.ts";
 import type {StoreOptions} from "@/storage/indexDb.ts";
 
 export enum PeriodType {
     WORK = 0,
     REST = 1,
 }
+
+export const defaultPeriod: PureEntity<Period>[] = [
+    {
+        time: 25 * 60,
+        typePeriode: PeriodType.WORK,
+        index: 1,
+        cycle_id: ""
+    },
+    {
+        time: 5 * 60,
+        typePeriode: PeriodType.REST,
+        index: 2,
+        cycle_id: ""
+    }
+]
 
 export const PeriodStoreOptions: StoreOptions = {
     name: 'period',

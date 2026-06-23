@@ -10,7 +10,7 @@ export class ConnectivityService {
     }
 
     async hasSession(): Promise<boolean> {
-        return await UserRepository.hasConnection();
+        return await UserRepository.getLastSessionUser() !== undefined;
     }
 
     async isAuthenticated(): Promise<boolean> {

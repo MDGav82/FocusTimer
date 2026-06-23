@@ -11,7 +11,7 @@ export const UserStoreOptions: StoreOptions = {
 }
 
 export interface User extends BaseEntity {
-    email: string;
+    email?: string;
     parameters: Parameters;
     // tasks: Task[];
     // cycle: Cycle[];

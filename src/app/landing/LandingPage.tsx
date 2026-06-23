@@ -1,9 +1,12 @@
-import { useState } from "react";
+import {use, useEffect, useState} from "react";
 import { Timer } from "./Timer";
 import { Cycle, type CycleWithPeriods } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
 import { PeriodType, type Period } from "@/model/Period";
 import { TaskStatus, type Task } from "@/model/Task";
+import {ConnectivityService} from "@/storage/ConnectivityService.ts";
+import type {User} from "@/model/User.ts";
+import {UserRepository} from "@/storage/repositories";
 
 const MOCK_USER_ID = "mock-user";
 
@@ -69,6 +72,18 @@ const INITIAL_CYCLES: CycleWithPeriods[] = [
 const DEFAULT_FALLBACK_PERIOD: Period = makePeriod(25 * 60, PeriodType.WORK, 0, "fallback");
 
 export function LandingPage() {
+
+  const [isLoading, setLoading] = useState<boolean>(true)
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    async function getUser() {
+      const currentUser = await UserRepository.getLastSessionUser() ?? await UserRepository.createLocalUser();
+      setUser(currentUser);
+      setLoading(false);
+    }
+  })
+
   const [cycles, setCycles] = useState<CycleWithPeriods[]>(INITIAL_CYCLES);
   const [periods, setPeriods] = useState<Period[]>(INITIAL_CYCLES[0]?.periods ?? [DEFAULT_FALLBACK_PERIOD]);
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);

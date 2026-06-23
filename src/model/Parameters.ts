@@ -1,6 +1,11 @@
-import type {BaseEntity} from "@/model/BaseEntity.ts";
+export const defaultParams: Parameters = {
+    notificationsOn:   true,
+    autoStartWork:     false,
+    autoStartRest:     false,
+    autoRestartCycle:  false,
+}
 
-export interface Parameters extends BaseEntity {
+export interface Parameters {
     // static readonly storeName: string = 'parameters';
     // static readonly keyPath: string = 'id';
     // static readonly indexes?: IndexDefinition[] = [

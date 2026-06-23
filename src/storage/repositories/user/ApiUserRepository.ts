@@ -53,4 +53,8 @@ export class ApiUserRepository implements IUserRepository {
         });
         return parseEntity(UserSchema, data, id);
     }
+
+    createOnlineUser(user: User): Promise<User> {
+        throw new Error("Method not implemented.");
+    }
 }
