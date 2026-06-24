@@ -1,21 +1,31 @@
 import {GenericIndexedDbRepository} from "@/storage/repositories/GenericIndexDbRepository.ts";
-import type {User} from "@/model/User.ts";
+import {type User, type UserMeta, UserMetaStoreOptions} from "@/model/User.ts";
 import type {IUserRepository} from "@/storage/repositories/user/IUserRepository.ts";
-import {idbAddGet, idbGet, idbUpdate} from "@/storage/indexDb.ts";
+import {idbAdd, idbAddGet, idbGet, idbUpdate} from "@/storage/indexDb.ts";
 import type {Parameters} from "@/model/Parameters.ts";
 
 export class IdbUserRepository extends GenericIndexedDbRepository<User> implements IUserRepository {
-    async updateParameters(id: string, parameters: Partial<Parameters>): Promise<User> {
+    updateParameters(id: string, parameters: Partial<Parameters>): Promise<User> {
         return idbUpdate(this.db, 'user', id, user => {
             user.parameters = {...user.parameters, ...parameters}
         })
     }
 
-    async getLastSessionUser(): Promise<User | undefined> {
-        return await idbGet<User>(this.db, this.storeName, 'lastSessionUser');
+    getLastSessionMeta(): Promise<UserMeta | undefined> {
+        return idbGet<UserMeta>(this.db, UserMetaStoreOptions.name, 'lastSessionUser');
     }
 
     createLocalUser(user: User): Promise<User> {
-        return idbAddGet(this.db, this.storeName, user, 'lastSessionUser')
+        return idbAddGet<User>(this.db, this.storeName, user)
+    }
+
+    async updateSessionMeta(data: Partial<UserMeta>): Promise<UserMeta> {
+        const meta = await this.getLastSessionMeta();
+        if (meta === undefined) await idbAdd<UserMeta>(this.db, UserMetaStoreOptions.name, {
+            id: 'lastSessionUser',
+            lastUserId: data.lastUserId ?? "",
+            selectedCycleId: data.selectedCycleId ?? ""
+        })
+        return idbUpdate<UserMeta>(this.db, UserMetaStoreOptions.name, 'lastSessionUser', item => ({...item, ...data}))
     }
 }

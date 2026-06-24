@@ -1,5 +1,5 @@
 import type { Parameters } from './Parameters.ts';
-import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {BaseEntity, StorableEntity} from "@/model/BaseEntity.ts";
 import type {StoreOptions} from "@/storage/indexDb.ts";
 
 export const UserStoreOptions: StoreOptions = {
@@ -16,4 +16,14 @@ export interface User extends BaseEntity {
     // tasks: Task[];
     // cycle: Cycle[];
     // history: History[];
+}
+
+export const UserMetaStoreOptions: StoreOptions = {
+    name: 'user_meta',
+    keyPath: 'id',
+}
+
+export interface UserMeta extends StorableEntity {
+    lastUserId: string,
+    selectedCycleId: string
 }

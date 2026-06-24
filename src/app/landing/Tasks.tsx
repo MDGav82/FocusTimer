@@ -12,8 +12,8 @@ import {
 
 interface TasksProps {
   tasks: Task[];
-  selectedTaskId: string | null;
-  onSelectTask: (id: string | null) => void;
+  selectedTask: Task | null;
+  onSelectTask: (id: Task | null) => void;
   onAddTask: (title: string, minutes: number) => void;
   onEditTask: (id: string, title: string, minutes: number) => void;
   onDeleteAll: () => void;
@@ -22,7 +22,7 @@ interface TasksProps {
 
 export function Tasks({
   tasks,
-  selectedTaskId,
+  selectedTask,
   onSelectTask,
   onAddTask,
   onEditTask,
@@ -125,7 +125,7 @@ export function Tasks({
           </p>
         ) : (
           tasks.map((task) => {
-            const isSelected = task.id === selectedTaskId;
+            const isSelected = task.id === selectedTask?.id!;
             const isCompleted = task.status === TaskStatus.FINISHED;
 
             return (
@@ -183,7 +183,7 @@ export function Tasks({
                     variant={isSelected ? "secondary" : "default"}
                     size="sm"
                     disabled={isCompleted}
-                    onClick={() => onSelectTask(isSelected ? null : task.id)}
+                    onClick={() => onSelectTask(isSelected ? null : task)}
                     className={`font-semibold ${
                       isCompleted
                         ? ""

@@ -5,7 +5,7 @@ import {idbAddGet, idbTransaction} from "@/storage/indexDb.ts";
 
 export class IdbCycleRepository extends GenericIndexedDbRepository<Cycle> implements ICycleRepository {
     createCycleForUser(_userId: string, cycle: Cycle): Promise<Cycle> {
-        return idbAddGet(this.db, this.storeName, cycle, cycle.id)
+        return idbAddGet(this.db, this.storeName, cycle)
     }
 
     getCyclesForUser(userId: string): Promise<Cycle[]> {

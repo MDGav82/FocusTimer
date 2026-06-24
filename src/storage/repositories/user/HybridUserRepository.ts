@@ -1,6 +1,6 @@
 import type {IUserRepository} from "@/storage/repositories/user/IUserRepository.ts";
 import {GenericHybridRepository} from "@/storage/repositories/GenericHybridRepository.ts";
-import type {User} from "@/model/User.ts";
+import type {User, UserMeta} from "@/model/User.ts";
 import {defaultParams, type Parameters} from "@/model/Parameters.ts";
 import {ApiUserRepository} from "@/storage/repositories/user/ApiUserRepository.ts";
 import {IdbUserRepository} from "@/storage/repositories/user/IdbUserRepository.ts";
@@ -44,8 +44,8 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
         }).then(() => user)
     }
 
-    async getLastSessionUser(): Promise<User | undefined> {
-        return this.local.getLastSessionUser();
+    getLastSessionMeta(): Promise<UserMeta | undefined> {
+        return this.local.getLastSessionMeta();
     }
 
     async createLocalUser(): Promise<User> {
@@ -60,9 +60,14 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
             _syncStatus: 'pending',
         };
         const cycle = await CycleRepository.createCycleForUser(user.id, defaultCycle);
-        await Promise.all(
-            defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(cycle.id, period))
-        );
+        await Promise.all([
+            ...defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(cycle.id, period)),
+            this.updateSessionMeta({lastUserId: user.id, selectedCycleId: cycle.id})
+        ]);
         return this.local.createLocalUser(user);
+    }
+
+    updateSessionMeta(data: Partial<UserMeta>): Promise<UserMeta> {
+        return this.local.updateSessionMeta(data);
     }
 }

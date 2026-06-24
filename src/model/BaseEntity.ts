@@ -1,5 +1,8 @@
-export interface BaseEntity {
-    id: string;
+export interface StorableEntity {
+    id: string,
+}
+
+export interface BaseEntity extends StorableEntity {
     updatedAt: number;
     _syncStatus: 'synced' | 'pending' | 'conflict';
 }
