@@ -28,6 +28,7 @@ class Task {
   +timeSpent : int
   +endDate : DateTime
   +updatedAt : long
+  +isArchived : bool
 }
 
 class History {
