@@ -1,12 +1,11 @@
-import {use, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import { Timer } from "./Timer";
 import { Cycle, type CycleWithPeriods } from "../cycle/Cycle";
 import { Tasks } from "./Tasks";
 import { PeriodType, type Period } from "@/model/Period";
 import { TaskStatus, type Task } from "@/model/Task";
-import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 import type {User} from "@/model/User.ts";
-import {UserRepository} from "@/storage/repositories";
+import {TaskRepository, UserRepository} from "@/storage/repositories";
 
 const MOCK_USER_ID = "mock-user";
 
@@ -29,24 +28,6 @@ function makeCycle(name: string, periodSpecs: Array<[number, PeriodType]>): Cycl
     name,
     user_id: MOCK_USER_ID,
     periods: periodSpecs.map(([time, typePeriode], index) => makePeriod(time, typePeriode, index, id)),
-    updatedAt: Date.now(),
-    _syncStatus: "synced",
-  };
-}
-
-function makeTask(title: string, description: string, estimatedTime: number, status: TaskStatus, timeSpent = 0): Task {
-  const now = new Date();
-  return {
-    id: crypto.randomUUID(),
-    title,
-    description,
-    estimatedTime,
-    creationDate: now,
-    startDate: now,
-    timeSpent,
-    endDate: now,
-    status,
-    user_id: MOCK_USER_ID,
     updatedAt: Date.now(),
     _syncStatus: "synced",
   };
@@ -77,12 +58,19 @@ export function LandingPage() {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    async function getUser() {
+    async function init() {
       const currentUser = await UserRepository.getLastSessionUser() ?? await UserRepository.createLocalUser();
       setUser(currentUser);
+      try {
+        const loaded = await TaskRepository.getTasksForUser(currentUser.id);
+        setTasks(loaded);
+      } catch (e) {
+        console.error("Failed to load tasks", e);
+      }
       setLoading(false);
     }
-  })
+    init();
+  }, [])
 
   const [cycles, setCycles] = useState<CycleWithPeriods[]>(INITIAL_CYCLES);
   const [periods, setPeriods] = useState<Period[]>(INITIAL_CYCLES[0]?.periods ?? [DEFAULT_FALLBACK_PERIOD]);
@@ -91,13 +79,44 @@ export function LandingPage() {
   // Sécurisation : Si la période à l'index actuel n'existe pas, on prend la première du tableau. Si le tableau est vide, on prend la période de secours.
   const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? DEFAULT_FALLBACK_PERIOD;
 
-  const [tasks, setTasks] = useState<Task[]>([
-    makeTask("Tâche par défaut uno", "Description 1", 30, TaskStatus.PROGRESS, 1200),
-    makeTask("Tâche par défaut secondo", "Description 2", 20, TaskStatus.PENDING, 0),
-    makeTask("Tâche par défaut tres", "Description 3", 20, TaskStatus.PENDING, 1199),
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  // Keep the latest tasks reachable from the periodic-flush interval without
+  // re-subscribing it on every tick.
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  const persistTask = useCallback(async (id: string, patch: Partial<Task>) => {
+    try {
+      await TaskRepository.update(id, patch);
+    } catch (e) {
+      console.error("Failed to persist task", e);
+    }
+  }, []);
+
+  const refreshTasks = useCallback(async () => {
+    if (!user) return;
+    try {
+      setTasks(await TaskRepository.getTasksForUser(user.id));
+    } catch (e) {
+      console.error("Failed to refresh tasks", e);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedTaskId === null) return;
+    const flush = () => {
+      const t = tasksRef.current.find((t) => t.id === selectedTaskId);
+      if (t && t.timeSpent > 0) persistTask(t.id, { timeSpent: t.timeSpent, status: t.status });
+    };
+    const interval = setInterval(flush, 10000);
+    return () => {
+      clearInterval(interval);
+      flush();
+    };
+  }, [selectedTaskId, persistTask]);
 
   const activePeriods = cycles[0]?.periods ?? periods;
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
@@ -187,6 +206,11 @@ export function LandingPage() {
           if (task.id === selectedTaskId) {
             const updatedTimeSpent = task.timeSpent + 1;
             const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
+            // Persist immediately on the completion transition; ongoing progress
+            // is flushed by the periodic effect above.
+            if (isCompleted && task.status !== TaskStatus.FINISHED) {
+              persistTask(task.id, { timeSpent: updatedTimeSpent, status: TaskStatus.FINISHED });
+            }
             return {
               ...task,
               timeSpent: updatedTimeSpent,
@@ -200,36 +224,65 @@ export function LandingPage() {
     }
   };
 
-  const handleAddTask = (title: string, minutes: number) => {
-    setTasks([...tasks, makeTask(title, "", minutes, TaskStatus.PENDING)]);
+  const handleAddTask = async (title: string, minutes: number) => {
+    if (!user) return;
+    const now = new Date();
+    try {
+      const created = await TaskRepository.createTaskForUser(user.id, {
+        title,
+        description: "",
+        estimatedTime: minutes,
+        creationDate: now,
+        startDate: now,
+        timeSpent: 0,
+        status: TaskStatus.PENDING,
+      });
+      setTasks((prev) => (prev.some((t) => t.id === created.id) ? prev : [...prev, created]));
+    } catch (e) {
+      // Local persistence runs first inside the repository, so the task is
+      // likely saved even if a later API/outbox step threw. Reconcile from
+      // storage so it appears without needing a page change.
+      console.error("Failed to create task", e);
+      await refreshTasks();
+    }
   };
 
   const handleEditTask = (id: string, updatedTitle: string, updatedMinutes: number) => {
-    setTasks(
-      tasks.map((t) =>
+    setTasks((prev) =>
+      prev.map((t) =>
         t.id === id
           ? { ...t, title: updatedTitle, estimatedTime: updatedMinutes, updatedAt: Date.now() }
           : t
       )
     );
+    persistTask(id, { title: updatedTitle, estimatedTime: updatedMinutes });
   };
 
-  const handleDeleteAll = () => {
+  const handleDeleteAll = async () => {
+    const toDelete = tasks;
     setTasks([]);
     setSelectedTaskId(null);
+    await Promise.all(
+      toDelete.map((t) =>
+        TaskRepository.delete(t.id).catch((e) => console.error("Failed to delete task", e))
+      )
+    );
   };
 
   const handleToggleComplete = (id: string) => {
+    let nextStatus: TaskStatus | null = null;
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === id) {
           const isCurrentlyCompleted = task.status === TaskStatus.FINISHED;
           const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? TaskStatus.PROGRESS : TaskStatus.PENDING) : TaskStatus.FINISHED;
+          nextStatus = newStatus;
           return { ...task, status: newStatus, updatedAt: Date.now() };
         }
         return task;
       })
     );
+    if (nextStatus !== null) persistTask(id, { status: nextStatus });
     if (selectedTaskId === id) {
       setSelectedTaskId(null);
     }

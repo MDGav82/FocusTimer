@@ -116,10 +116,12 @@ export function idbAddGet<T extends BaseEntity>(
     db: IDBDatabase,
     storeName: string,
     item: T,
-    key: IDBValidKey
+    key?: IDBValidKey
 ): Promise<T> {
     return runTransaction<T>(db, storeName, 'readwrite', async (store) => {
-        const addedKey = await request<IDBValidKey>(store.add(item, key))
+        const addedKey = store.keyPath === null
+            ? await request<IDBValidKey>(store.add(item, key))
+            : await request<IDBValidKey>(store.add(item));
         return request<T>(store.get(addedKey));
     })
 }

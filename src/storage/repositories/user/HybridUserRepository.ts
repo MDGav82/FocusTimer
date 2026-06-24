@@ -51,7 +51,9 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
     async createLocalUser(): Promise<User> {
         const now = Date.now();
         const user: User = {
-            id: this.generateId(),
+            // The user store uses in-line keys (keyPath 'id'), and getLastSessionUser
+            // looks the local session up under this fixed sentinel id.
+            id: 'lastSessionUser',
             email: undefined,
             parameters: defaultParams,
             updatedAt: now,
