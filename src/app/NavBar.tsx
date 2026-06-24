@@ -20,6 +20,9 @@ export default function NavBar() {
                 <NavLink to="/settings" className={linkStyles}>
                     Paramètres
                 </NavLink>
+                <NavLink to="/authentification" className={linkStyles}>
+                    Créer un compte
+                </NavLink>
             </nav>
         </header>
     );
