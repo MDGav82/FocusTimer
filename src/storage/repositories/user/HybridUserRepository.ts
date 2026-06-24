@@ -10,7 +10,7 @@ import {CycleRepository, PeriodRepository} from "@/storage/repositories";
 import {defaultCycle} from "@/model/Cycle.ts";
 import {defaultPeriod, PeriodType} from "@/model/Period.ts";
 
-export class HybridUserRepositor extends GenericHybridRepository<User> implements IUserRepository {
+export class HybridUserRepository extends GenericHybridRepository<User> implements IUserRepository {
     protected declare api: ApiUserRepository;
     protected declare local: IdbUserRepository;
 
