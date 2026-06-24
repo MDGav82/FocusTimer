@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {Timer} from "./Timer";
 import {Cycle} from "../cycle/Cycle";
 import {Tasks} from "./Tasks";
@@ -24,13 +24,13 @@ export function LandingPage() {
   useEffect(() => {
     async function fetchData() {
       let user: User;
-      let lastSessionMeta = await UserRepository.getLastSessionMeta();
+      const lastSessionMeta = await UserRepository.getLastSessionMeta();
 
-      if (lastSessionMeta === undefined) {
-        user = await UserRepository.createLocalUser();
-      } else {
-        user = (await UserRepository.getById(lastSessionMeta.lastUserId))!;
-      }
+      const existingUser = lastSessionMeta
+          ? await UserRepository.getById(lastSessionMeta.lastUserId)
+          : undefined;
+      // Create a fresh local session if there is no meta or the referenced user is gone.
+      user = existingUser ?? await UserRepository.createLocalUser();
       setUser(user);
 
       const taskPromise = TaskRepository.getTasksForUser(user.id)
@@ -39,28 +39,72 @@ export function LandingPage() {
       const currentCycles = await CycleRepository.getCyclesForUser(user.id);
       setCycles(currentCycles);
 
-      let resolvedCycle: CycleModel;
-      if (lastSessionMeta === undefined) {
-        resolvedCycle = currentCycles[0]!
-      } else {
-        resolvedCycle = currentCycles.find(c => c.id === lastSessionMeta.selectedCycleId)!;
-      }
-      setCurrentCycle(resolvedCycle);
+      // Prefer the cycle saved in the session, falling back to the first available one.
+      const resolvedCycle =
+          currentCycles.find(c => c.id === lastSessionMeta?.selectedCycleId) ?? currentCycles[0];
+      setCurrentCycle(resolvedCycle ?? null);
 
-      const periodsPromise = PeriodRepository.getPeriodsForCycle(resolvedCycle.id)
-          .then(periods => setActivePeriods(periods));
+      const periodsPromise = resolvedCycle
+          ? PeriodRepository.getPeriodsForCycle(resolvedCycle.id).then(periods => setActivePeriods(periods))
+          : Promise.resolve();
 
-      await Promise.all([
-          taskPromise,
-          periodsPromise
-      ])
-      setLoading(false);
+      await Promise.all([taskPromise, periodsPromise]);
     }
+
     fetchData()
+        .catch((e) => console.error("Failed to initialize session", e))
+        .finally(() => setLoading(false));
   }, [])
+
+  // Keep the latest tasks reachable from the periodic-flush interval without
+  // re-subscribing it on every tick.
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  const persistTask = useCallback(async (id: string, patch: Partial<Task>) => {
+    try {
+      await TaskRepository.update(id, patch);
+    } catch (e) {
+      console.error("Failed to persist task", e);
+    }
+  }, []);
+
+  const refreshTasks = useCallback(async () => {
+    if (!user) return;
+    try {
+      setTasks(await TaskRepository.getTasksForUser(user.id));
+    } catch (e) {
+      console.error("Failed to refresh tasks", e);
+    }
+  }, [user]);
+
+  // Ticks accumulate timeSpent in local state for a smooth countdown; flush the
+  // selected task to storage every 10s and once more when it is deselected,
+  // instead of writing to the DB on every single tick.
+  const selectedTaskId = selectedTask?.id;
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    const flush = () => {
+      const t = tasksRef.current.find((t) => t.id === selectedTaskId);
+      if (t && t.timeSpent > 0) persistTask(t.id, { timeSpent: t.timeSpent, status: t.status });
+    };
+    const interval = setInterval(flush, 10000);
+    return () => {
+      clearInterval(interval);
+      flush();
+    };
+  }, [selectedTaskId, persistTask]);
 
   if (isLoading) {
     return (<div> Loadding ... </div>);
+  }
+
+  if (activePeriods.length === 0) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-slate-400">
+        Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
+      </div>
+    );
   }
 
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
@@ -136,53 +180,89 @@ export function LandingPage() {
     setCurrentPeriodIndex(0);
   };
 
-  const handleTick = async () => {
-    const currentPeriod = activePeriods[currentPeriodIndex]!;
-    if (selectedTask !== null && currentPeriod.typePeriode === PeriodType.WORK) {
-      const updatedTask = await TaskRepository.update(selectedTask.id, {
-        timeSpent: selectedTask.timeSpent + currentPeriod.time,
-        updatedAt: Date.now()
+  const handleTick = () => {
+    const currentPeriod = activePeriods[currentPeriodIndex];
+    if (!selectedTask || !currentPeriod || currentPeriod.typePeriode !== PeriodType.WORK) return;
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => {
+        if (task.id !== selectedTask.id) return task;
+        const updatedTimeSpent = task.timeSpent + 1;
+        const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
+        // Persist immediately on the completion transition; ongoing progress is
+        // flushed by the periodic effect above.
+        if (isCompleted && task.status !== TaskStatus.FINISHED) {
+          persistTask(task.id, { timeSpent: updatedTimeSpent, status: TaskStatus.FINISHED });
+        }
+        return {
+          ...task,
+          timeSpent: updatedTimeSpent,
+          status: isCompleted ? TaskStatus.FINISHED : TaskStatus.PROGRESS,
+          updatedAt: Date.now(),
+        };
       })
-      setTasks(prevTasks => prevTasks.map(task => task.id === selectedTask.id ? updatedTask : task));
-    }
+    );
   };
 
   const handleAddTask = async (title: string, minutes: number) => {
-    const newTask = await TaskRepository.createTaskForUser(user?.id!, {
-      title: title,
-      description: "",
-      estimatedTime: minutes,
-      creationDate: new Date(),
-      status: TaskStatus.PENDING,
-      timeSpent: 0,
-    })
-    setTasks([...tasks, newTask]);
+    if (!user) return;
+    const now = new Date();
+    try {
+      const created = await TaskRepository.createTaskForUser(user.id, {
+        title,
+        description: "",
+        estimatedTime: minutes,
+        creationDate: now,
+        startDate: now,
+        timeSpent: 0,
+        status: TaskStatus.PENDING,
+      });
+      setTasks((prev) => (prev.some((t) => t.id === created.id) ? prev : [...prev, created]));
+    } catch (e) {
+      // Local persistence runs first inside the repository, so the task is
+      // likely saved even if a later API/outbox step threw. Reconcile from
+      // storage so it appears without needing a page change.
+      console.error("Failed to create task", e);
+      await refreshTasks();
+    }
   };
 
-  const handleEditTask = async (id: string, updatedTitle: string, updatedMinutes: number) => {
-    const updatedTask = await TaskRepository.update(id, {
-      title: updatedTitle,
-      estimatedTime: updatedMinutes,
-    })
-    setTasks(prevState => prevState.map(task => task.id === updatedTask.id ? updatedTask : task))
+  const handleEditTask = (id: string, updatedTitle: string, updatedMinutes: number) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, title: updatedTitle, estimatedTime: updatedMinutes, updatedAt: Date.now() }
+          : t
+      )
+    );
+    persistTask(id, { title: updatedTitle, estimatedTime: updatedMinutes });
   };
 
-  const handleDeleteAll = () => {
+  const handleDeleteAll = async () => {
+    const toDelete = tasks;
     setTasks([]);
     setSelectedTask(null);
+    await Promise.all(
+      toDelete.map((t) =>
+        TaskRepository.delete(t.id).catch((e) => console.error("Failed to delete task", e))
+      )
+    );
   };
 
-  const handleToggleComplete = async (id: string) => {
-    const taskToUpdate = tasks.find(t => t.id === id);
-    if (!taskToUpdate || taskToUpdate.status === TaskStatus.FINISHED) return;
-
-    const updatedTask = await TaskRepository.update(id, {
-      status: TaskStatus.FINISHED,
-      endDate: new Date()
-    })
-    setTasks(prevTasks => prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task));
-
-    if (selectedTask?.id! === id) {
+  const handleToggleComplete = (id: string) => {
+    let nextStatus: TaskStatus | null = null;
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => {
+        if (task.id === id) {
+          const isCurrentlyCompleted = task.status === TaskStatus.FINISHED;
+          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? TaskStatus.PROGRESS : TaskStatus.PENDING) : TaskStatus.FINISHED;
+          nextStatus = newStatus;
+          return { ...task, status: newStatus, updatedAt: Date.now() };
+        }
+        return task;
+      })
+    );
+    if (nextStatus !== null) persistTask(id, { status: nextStatus });
+    if (selectedTask?.id === id) {
       setSelectedTask(null);
     }
   };
