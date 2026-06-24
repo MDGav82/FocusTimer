@@ -5,7 +5,7 @@ import {idbAddGet, idbTransaction} from "@/storage/indexDb.ts";
 
 export class IdbTaskRepository extends GenericIndexedDbRepository<Task> implements ITaskRepository {
     async createTaskForUser(_userId: string, task: Task): Promise<Task> {
-        return idbAddGet(this.db, this.storeName, task, task.id)
+        return idbAddGet(this.db, this.storeName, task)
     }
 
     getTasksForUser(userId: string): Promise<Task[]> {

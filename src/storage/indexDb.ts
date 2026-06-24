@@ -1,9 +1,9 @@
-import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {BaseEntity, StorableEntity} from "@/model/BaseEntity.ts";
 import {TaskStoreOptions} from "@/model/Task.ts";
 import {CycleStoreOptions} from "@/model/Cycle.ts";
 import {HistoryStoreOptions} from "@/model/History.ts";
 import {PeriodStoreOptions} from "@/model/Period.ts";
-import {UserStoreOptions} from "@/model/User.ts";
+import {UserStoreOptions, UserMetaStoreOptions} from "@/model/User.ts";
 import {OutboxStoreOptions} from "@/storage/sync/OutboxQueue.ts";
 
 const DB_NAME = "focusTimer";
@@ -25,6 +25,7 @@ const stores: StoreOptions[] = [
     HistoryStoreOptions,
     PeriodStoreOptions,
     UserStoreOptions,
+    UserMetaStoreOptions,
     OutboxStoreOptions,
 ]
 
@@ -98,28 +99,26 @@ export function idbTransaction(
     });
 }
 
-export function idbAdd<T extends BaseEntity>(
+export function idbAdd<T extends StorableEntity>(
     db: IDBDatabase,
     storeName: string,
     item: T,
-    key?: IDBValidKey
 ) {
     return idbTransaction(
         db,
         storeName,
         'readwrite',
-        s =>  s.add(item, key)
+        s =>  s.add(item)
     ) as Promise<IDBValidKey>
 }
 
-export function idbAddGet<T extends BaseEntity>(
+export function idbAddGet<T extends StorableEntity>(
     db: IDBDatabase,
     storeName: string,
-    item: T,
-    key: IDBValidKey
+    item: T
 ): Promise<T> {
     return runTransaction<T>(db, storeName, 'readwrite', async (store) => {
-        const addedKey = await request<IDBValidKey>(store.add(item, key))
+        const addedKey = await request<IDBValidKey>(store.add(item))
         return request<T>(store.get(addedKey));
     })
 }
@@ -134,7 +133,7 @@ export function idbAddGet<T extends BaseEntity>(
 //     return Promise.all(items.map(item => request<IDBValidKey>(store.add(item))));
 // }
 
-export function idbGet<T extends BaseEntity>(
+export function idbGet<T extends StorableEntity>(
     db: IDBDatabase,
     storeName: string,
     id: IDBValidKey
@@ -147,7 +146,7 @@ export function idbGet<T extends BaseEntity>(
     ) as Promise<T | undefined>
 }
 
-export function idbUpdate<T extends BaseEntity>(
+export function idbUpdate<T extends StorableEntity>(
     db: IDBDatabase,
     storeName: string,
     id: IDBValidKey,

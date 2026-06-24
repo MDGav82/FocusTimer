@@ -5,7 +5,7 @@ import {idbAddGet, idbTransaction} from "@/storage/indexDb.ts";
 
 export class IdbPeriodRepository extends GenericIndexedDbRepository<Period> implements IPeriodRepository {
     createPeriodForCycle(_cycleId: string, period: Period): Promise<Period> {
-        return idbAddGet(this.db, this.storeName, period, period.id);
+        return idbAddGet(this.db, this.storeName, period);
     }
 
     getPeriodsForCycle(cycleId: string): Promise<Period[]> {
