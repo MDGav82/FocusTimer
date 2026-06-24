@@ -24,13 +24,13 @@ export function LandingPage() {
   useEffect(() => {
     async function fetchData() {
       let user: User;
-      let lastSessionMeta = await UserRepository.getLastSessionMeta();
+      const lastSessionMeta = await UserRepository.getLastSessionMeta();
 
-      if (lastSessionMeta === undefined) {
-        user = await UserRepository.createLocalUser();
-      } else {
-        user = (await UserRepository.getById(lastSessionMeta.lastUserId))!;
-      }
+      const existingUser = lastSessionMeta
+          ? await UserRepository.getById(lastSessionMeta.lastUserId)
+          : undefined;
+      // Create a fresh local session if there is no meta or the referenced user is gone.
+      user = existingUser ?? await UserRepository.createLocalUser();
       setUser(user);
 
       const taskPromise = TaskRepository.getTasksForUser(user.id)
@@ -39,24 +39,21 @@ export function LandingPage() {
       const currentCycles = await CycleRepository.getCyclesForUser(user.id);
       setCycles(currentCycles);
 
-      let resolvedCycle: CycleModel;
-      if (lastSessionMeta === undefined) {
-        resolvedCycle = currentCycles[0]!
-      } else {
-        resolvedCycle = currentCycles.find(c => c.id === lastSessionMeta.selectedCycleId)!;
-      }
-      setCurrentCycle(resolvedCycle);
+      // Prefer the cycle saved in the session, falling back to the first available one.
+      const resolvedCycle =
+          currentCycles.find(c => c.id === lastSessionMeta?.selectedCycleId) ?? currentCycles[0];
+      setCurrentCycle(resolvedCycle ?? null);
 
-      const periodsPromise = PeriodRepository.getPeriodsForCycle(resolvedCycle.id)
-          .then(periods => setActivePeriods(periods));
+      const periodsPromise = resolvedCycle
+          ? PeriodRepository.getPeriodsForCycle(resolvedCycle.id).then(periods => setActivePeriods(periods))
+          : Promise.resolve();
 
-      await Promise.all([
-          taskPromise,
-          periodsPromise
-      ])
-      setLoading(false);
+      await Promise.all([taskPromise, periodsPromise]);
     }
+
     fetchData()
+        .catch((e) => console.error("Failed to initialize session", e))
+        .finally(() => setLoading(false));
   }, [])
 
   // Keep the latest tasks reachable from the periodic-flush interval without
@@ -100,6 +97,14 @@ export function LandingPage() {
 
   if (isLoading) {
     return (<div> Loadding ... </div>);
+  }
+
+  if (activePeriods.length === 0) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-slate-400">
+        Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
+      </div>
+    );
   }
 
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);

@@ -104,7 +104,8 @@ export default function DashboardPage() {
             try {
                 setLoading(true);
                 // Read-only page: never create a user here (that's the landing page's job).
-                const user = await UserRepository.getLastSessionUser();
+                const meta = await UserRepository.getLastSessionMeta();
+                const user = meta ? await UserRepository.getById(meta.lastUserId) : undefined;
                 if (!user) {
                     if (!cancelled) {
                         setAllTasks([]);

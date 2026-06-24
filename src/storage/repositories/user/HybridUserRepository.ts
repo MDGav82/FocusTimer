@@ -5,12 +5,11 @@ import {defaultParams, type Parameters} from "@/model/Parameters.ts";
 import {ApiUserRepository} from "@/storage/repositories/user/ApiUserRepository.ts";
 import {IdbUserRepository} from "@/storage/repositories/user/IdbUserRepository.ts";
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
-import * as console from "node:console";
 import {CycleRepository, PeriodRepository} from "@/storage/repositories";
 import {defaultCycle} from "@/model/Cycle.ts";
 import {defaultPeriod, PeriodType} from "@/model/Period.ts";
 
-export class HybridUserRepositor extends GenericHybridRepository<User> implements IUserRepository {
+export class HybridUserRepository extends GenericHybridRepository<User> implements IUserRepository {
     protected declare api: ApiUserRepository;
     protected declare local: IdbUserRepository;
 
@@ -59,12 +58,16 @@ export class HybridUserRepositor extends GenericHybridRepository<User> implement
             updatedAt: now,
             _syncStatus: 'pending',
         };
+        // Bootstrap is device-local: create the cycle and its periods *before* the
+        // session meta exists, so canUseApi() stays false (hasSession() is meta-based)
+        // and nothing is pushed to a server that doesn't know this local user yet.
         const cycle = await CycleRepository.createCycleForUser(user.id, defaultCycle);
-        await Promise.all([
-            ...defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(cycle.id, period)),
-            this.updateSessionMeta({lastUserId: user.id, selectedCycleId: cycle.id})
-        ]);
-        return this.local.createLocalUser(user);
+        await Promise.all(
+            defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(cycle.id, period))
+        );
+        const createdUser = await this.local.createLocalUser(user);
+        await this.updateSessionMeta({lastUserId: user.id, selectedCycleId: cycle.id});
+        return createdUser;
     }
 
     updateSessionMeta(data: Partial<UserMeta>): Promise<UserMeta> {
