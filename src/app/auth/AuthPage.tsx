@@ -19,7 +19,6 @@ export function AuthPage() {
     setError(null);
 
     try {
-      // Requête de création de compte vers le backend Elysia
       const data = await apiFetch(`/api/auth/register`, {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -28,7 +27,6 @@ export function AuthPage() {
       
       const user = parseEntity(UserSchema, data) as User;
 
-      // Initialisation de la session locale IndexedDB
       await UserRepository.updateSessionMeta({
         lastUserId: user.id,
       });
@@ -44,12 +42,15 @@ export function AuthPage() {
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
 
-      {/* Conteneur Formulaire*/}
+      {/* Carte d'inscription */}
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">
             Créer un compte
           </h2>
+          <p className="text-sm text-gray-500">
+            Rejoignez-nous pour sauvegarder et synchroniser vos cycles de travail Pomodoro.
+          </p>
         </div>
 
         {error && (
@@ -69,7 +70,7 @@ export function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="abc@de.fr"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
             />
           </div>
 
@@ -83,7 +84,7 @@ export function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
             />
           </div>
 
