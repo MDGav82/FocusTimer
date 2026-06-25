@@ -33,18 +33,18 @@ export function AuthPage() {
 
     try {
       let data: unknown;
+      const sessionMeta = await UserRepository.getLastSessionMeta();
+      const localUserId = sessionMeta?.lastUserId!;
 
       if (isLogin) {
         // --- LOGIQUE DE CONNEXION ---
         data = await apiFetch(`/api/auth/login`, {
           method: "POST",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ id: localUserId, email, password }),
           headers: { "Content-Type": "application/json" },
         });
       } else {
         // --- LOGIQUE D'INSCRIPTION ---
-        const sessionMeta = await UserRepository.getLastSessionMeta();
-        const localUserId = sessionMeta?.lastUserId!;
         const userFull = await UserRepository.getById(localUserId);
 
         data = await apiFetch(`/api/auth/register`, {
