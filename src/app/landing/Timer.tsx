@@ -16,6 +16,29 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
   const [timeLeft, setTimeLeft] = useState<number>(currentPeriod.time);
   const [isActive, setIsActive] = useState<boolean>(false);
 
+  // Demander la permission des notifications système
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+  };
+
+  const sendPeriodNotification = (completedPeriod: Period) => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const isWork = completedPeriod.typePeriode === PeriodType.WORK;
+    
+    const title = isWork ? "Beau boulot !" : "Pause terminée !";
+    const options = {
+      body: isWork 
+        ? "C'est l'heure de souffler un peu. Prends une pause !" 
+        : "Retour au focus, c'est parti pour une nouvelle session !",
+      icon: "/favicon.ico"
+    };
+
+    new Notification(title, options);
+  };
+
   useEffect(() => {
     setTimeLeft(currentPeriod.time);
     setIsActive(false);
@@ -23,6 +46,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
   useEffect(() => {
     let interval: any = null;
+    
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
@@ -30,10 +54,14 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
       }, 1000);
     } else if (timeLeft === 0) {
       setIsActive(false);
+      
+      // Lancement de notification
+      sendPeriodNotification(currentPeriod);
+      
       onNext();
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, onNext]);
+  }, [isActive, timeLeft, onNext, currentPeriod]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -44,6 +72,12 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
   const handleReset = () => {
     setIsActive(false);
     setTimeLeft(currentPeriod.time);
+  };
+
+  // Gestionnaire du clic Play/Pause incluant la demande de permission
+  const handleToggleActive = () => {
+    requestNotificationPermission();
+    setIsActive((v) => !v);
   };
 
   const currentPeriodElapsed = currentPeriod.time - timeLeft;
@@ -75,7 +109,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
         <button
           type="button"
-          onClick={() => setIsActive((v) => !v)}
+          onClick={handleToggleActive}
           aria-label={isActive ? "Mettre en pause" : "Démarrer"}
           title={isActive ? "Pause" : "Démarrer"}
           className={cn(
