@@ -158,14 +158,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       prevTasks.map((task) => {
         if (task.id !== selectedTask.id) return task;
         const updatedTimeSpent = task.timeSpent + 1;
-        const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
-        if (isCompleted && task.status !== TaskStatus.FINISHED) {
-          persistTask(task.id, { timeSpent: updatedTimeSpent, status: TaskStatus.FINISHED });
-        }
+        const nextStatus = task.status === TaskStatus.FINISHED ? TaskStatus.FINISHED : task.status === TaskStatus.PROGRESS ? TaskStatus.PROGRESS : TaskStatus.PENDING ;
+        persistTask(task.id, { timeSpent: updatedTimeSpent, status: nextStatus });
         return {
           ...task,
           timeSpent: updatedTimeSpent,
-          status: isCompleted ? TaskStatus.FINISHED : TaskStatus.PROGRESS,
+          status: nextStatus,
           updatedAt: Date.now(),
         };
       })
