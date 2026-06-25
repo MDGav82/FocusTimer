@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import { Elysia } from "elysia";
 import index from "./index.html";
+import { db } from "./backend/db";
 import { authRoutes } from "./backend/routes/auth";
 import { userRoutes } from "./backend/routes/users";
 import { taskRoutes } from "./backend/routes/tasks";
@@ -54,3 +55,22 @@ const server = serve({
 });
 
 console.log(`🚀 Server running at ${server.url}`);
+
+// 12-factor IX: shut down gracefully. Stop accepting new connections and let
+// in-flight requests finish, then close the DB pool, so redeploys/scaling don't
+// drop active requests or leak connections.
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  try {
+    await server.stop();
+    await db.close();
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
