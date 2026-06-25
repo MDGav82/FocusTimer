@@ -72,7 +72,7 @@ export default function AuthPage() {
         });
       }
 
-      syncEngine.processQueue()
+      await syncEngine.processQueue()
       const user = parseEntity(UserSchema, data) as User;
       await UserRepository.updateSessionMeta({
         lastUserId: user.id,

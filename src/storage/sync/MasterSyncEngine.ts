@@ -40,7 +40,9 @@ export class MasterSyncEngine {
         ];
     }
 
-    processQueue() {
-        this.childEngines.forEach(engine => engine.processQueue())
+    async processQueue() {
+        for (const engine of this.childEngines) {
+            await engine.processQueue();
+        }
     }
 }
