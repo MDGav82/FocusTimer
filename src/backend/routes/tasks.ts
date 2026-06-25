@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { TaskSchema } from "@/model/schemas.ts";
+import {TaskCreateSchema,TaskUpdateSchema, TaskSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend Status enum (PENDING=0, PROGRESS=1, FINISHED=2)
@@ -59,8 +59,7 @@ export const taskRoutes = new Elysia()
   })
 
   .post("/api/users/:id/tasks", async ({ params: { id }, body, set }) => {
-    const { id: taskId, title, description, estimatedTime } = body as any;
-    if (!title) { set.status = 400; return { error: "Title is required" }; }
+    const { id: taskId, title, description, estimatedTime } = body;
     try {
       const [task] = await db`
         INSERT INTO task (id, user_id, status_id, title, description, estimated_time)
@@ -80,7 +79,7 @@ export const taskRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, {body:TaskCreateSchema})
 
   .get("/api/tasks/:id", async ({ params: { id }, set }) => {
     try {
@@ -97,7 +96,7 @@ export const taskRoutes = new Elysia()
     const {
       title, description, status, estimatedTime,
       progress, timeSpent, startDate, endDate,
-    } = body as any;
+    } = body;
     const statusName = typeof status === "number" ? STATUS_NAMES[status] : undefined;
     try {
       const [updated] = await db`
@@ -121,7 +120,7 @@ export const taskRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, {body: TaskUpdateSchema})
 
   .delete("/api/tasks/:id", async ({ params: { id }, set }) => {
     try {

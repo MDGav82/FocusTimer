@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { UserSchema } from "@/model/schemas.ts";
+import { UserSchema, UserUpdateSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 export function toUserJson(row: any) {
@@ -68,7 +68,7 @@ export const userRoutes = new Elysia()
   })
 
   .put("/api/users/:id", async ({ params: { id }, body, set }) => {
-    const { email, password } = body as { email?: string; password?: string };
+    const { email, password } = body;
     try {
       const hashed = password ? await Bun.password.hash(password) : null;
       const [updated] = await db`
@@ -87,7 +87,7 @@ export const userRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, { body: UserUpdateSchema })
 
   .delete("/api/users/:id", async ({ params: { id }, set }) => {
     try {

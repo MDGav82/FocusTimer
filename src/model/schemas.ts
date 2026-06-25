@@ -89,6 +89,7 @@ export const ParametersUpdateSchema = z.object({
 });
 
 export const TaskCreateSchema = z.object({
+    id: z.uuid(),
     title: z.string(),
     description: z.string().optional(),
     estimatedTime: z.number().optional(),
@@ -106,12 +107,14 @@ export const TaskUpdateSchema = z.object({
 });
 
 export const PeriodInputSchema = z.object({
+    id: z.uuid(),
     typePeriode: z.enum(PeriodType).meta({ description: "PeriodType enum: 0 = work, 1 = break" }),
     time: z.number().meta({ description: "Duration in seconds" }),
     index: z.number().meta({ description: "Order within the cycle" }),
 });
 
 export const CycleCreateSchema = z.object({
+    id: z.string().optional(),
     name: z.string(),
 });
 

@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
 import { getUserById } from "./users";
-import { UserSchema } from "@/model/schemas.ts";
+import { AuthCredentialsSchema, UserSchema } from "@/model/schemas.ts";
 import { validateResponse } from "../validateResponse";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
@@ -10,12 +10,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
   // Register — creates the user and sets the httpOnly cookie
   .post("/register", async ({ jwt, cookie, body, set }) => {
-    const { email, password } = body as { email: string; password: string };
-
-    if (!email || !password) {
-      set.status = 400;
-      return { error: "Email and password are required" };
-    }
+    const { email, password } = body;
 
     try {
       const hashed = await Bun.password.hash(password);
@@ -49,16 +44,11 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, { body: AuthCredentialsSchema })
 
   // Login — verifies credentials and sets the httpOnly cookie
   .post("/login", async ({ jwt, cookie, body, set }) => {
-    const { email, password } = body as { email: string; password: string };
-
-    if (!email || !password) {
-      set.status = 400;
-      return { error: "Email and password are required" };
-    }
+    const { email, password } = body;
 
     try {
       const [user] = await db`
@@ -92,7 +82,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, { body: AuthCredentialsSchema })
 
   // Logout — removes the cookie
   .post("/logout", ({ cookie }) => {
