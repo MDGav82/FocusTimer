@@ -8,9 +8,11 @@ import "./styles/globals.css";
  */
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 antialiased font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       <NavBar/>
-      <Outlet/>
+      <main className="px-4">
+        <Outlet/>
+      </main>
     </div>
   );
 }

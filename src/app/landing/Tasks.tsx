@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { type Task, TaskStatus } from "@/model/Task";
+import { Pencil, Check, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +20,12 @@ interface TasksProps {
   onEditTask: (id: string, title: string, minutes: number) => void;
   onDeleteAll: () => void;
   onToggleComplete: (id: string) => void;
+}
+
+/** Whole minutes → MM:SS, the prominent number on each task row. */
+function formatClock(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes ?? 0));
+  return `${total.toString().padStart(2, "0")}:00`;
 }
 
 export function Tasks({
@@ -40,7 +48,7 @@ export function Tasks({
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (h > 0) return `${h}h ${m}m`;
     if (m > 0) return `${m}m ${s}s`;
     return `${s}s`;
   };
@@ -85,145 +93,148 @@ export function Tasks({
     setEditingTask(null);
   };
 
-  const getStatusLabel = (status: TaskStatus) => {
-    if (status === TaskStatus.FINISHED) return "Completed";
-    if (status === TaskStatus.PROGRESS) return "In Progress";
-    return "Todo";
-  };
-
   return (
-    <div className="bg-slate-800/40 border border-emerald-500/20 p-5 rounded-2xl shadow-xl relative">
-      <div className="flex justify-between items-center mb-5">
-        <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-          Liste des tâches
-        </h3>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openAddModal}
-            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 font-semibold"
-          >
-            + Ajouter
-          </Button>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-semibold text-foreground">Liste des tâches</h3>
+        {tasks.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onDeleteAll}
-            className="text-rose-400/70 hover:text-rose-400 font-medium"
+            className="text-destructive hover:bg-destructive/10 gap-1.5"
           >
-            Supprimer tout
+            <Trash2 className="size-3.5" />
+            Tout supprimer
           </Button>
-        </div>
+        )}
       </div>
 
       <div className="space-y-3">
         {tasks.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4">
+          <p className="text-sm text-muted-foreground text-center py-6">
             Aucune tâche disponible. Ajoutez-en une !
           </p>
         ) : (
           tasks.map((task) => {
-            const isSelected = task.id === selectedTask?.id!;
+            const isSelected = task.id === selectedTask?.id;
             const isCompleted = task.status === TaskStatus.FINISHED;
+            const progressPct =
+              task.estimatedTime > 0
+                ? Math.min(100, (task.timeSpent / (task.estimatedTime * 60)) * 100)
+                : 0;
 
             return (
               <div
                 key={task.id}
-                className={`flex justify-between items-center p-4 rounded-xl border transition duration-200 ${
-                  isSelected
-                    ? "bg-slate-800 border-emerald-500/60 shadow-lg shadow-emerald-500/5"
-                    : isCompleted
-                    ? "bg-slate-900/20 border-slate-800 opacity-60"
-                    : "bg-slate-900/40 border-slate-700/40 hover:border-slate-600/60"
-                }`}
+                onClick={() => !isCompleted && onSelectTask(isSelected ? null : task)}
+                className={cn(
+                  "rounded-full px-5 py-3.5 transition-all",
+                  isCompleted
+                    ? "bg-brand-yellow/20 cursor-default"
+                    : isSelected
+                    ? "bg-card ring-2 ring-brand-orange shadow-[0_8px_26px_rgb(0_0_0/0.10)] cursor-pointer"
+                    : "bg-card ring-1 ring-border shadow-[0_6px_20px_rgb(0_0_0/0.06)] hover:shadow-[0_8px_24px_rgb(0_0_0/0.1)] cursor-pointer"
+                )}
               >
-                <div className="space-y-1.5">
-                  <h4
-                    className={`font-medium text-sm transition-all ${
-                      isCompleted ? "line-through text-slate-500" : "text-slate-200"
-                    }`}
-                  >
-                    {task.title}
-                  </h4>
-                  <div className="flex items-center gap-3 text-xs text-slate-400">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        isCompleted
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : task.status === TaskStatus.PROGRESS
-                          ? "bg-amber-500/10 text-amber-400"
-                          : "bg-slate-700 text-slate-400"
-                      }`}
-                    >
-                      {getStatusLabel(task.status)}
-                    </span>
-                    <span>
-                      Progression :{" "}
-                      <strong className="text-slate-200 font-mono">
-                        {formatProgress(task.timeSpent ?? 0)}
-                      </strong>{" "}
-                      / {formatEstimation(task.estimatedTime ?? 0)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditModal(task)}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
-                  >
-                    Détails
-                  </Button>
-
-                  <Button
-                    variant={isSelected ? "secondary" : "default"}
-                    size="sm"
-                    disabled={isCompleted}
-                    onClick={() => onSelectTask(isSelected ? null : task)}
-                    className={`font-semibold ${
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "font-display text-2xl font-bold tabular-nums tracking-tight shrink-0",
                       isCompleted
-                        ? ""
+                        ? "text-muted-foreground"
                         : isSelected
-                        ? "bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-md shadow-amber-500/20"
-                        : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-                    }`}
+                        ? "text-brand-orange"
+                        : "text-foreground"
+                    )}
                   >
-                    {isSelected ? "Sélectionnée" : "Sélectionner"}
-                  </Button>
+                    {formatClock(task.estimatedTime)}
+                  </span>
 
-                  <Button
-                    variant={isCompleted ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => onToggleComplete(task.id)}
-                    className={`font-semibold ${
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "truncate font-medium",
+                          isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+                        )}
+                      >
+                        {task.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditModal(task);
+                        }}
+                        aria-label="Modifier la tâche"
+                        title="Modifier"
+                        className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                    </div>
+                    {!isCompleted && task.timeSpent > 0 && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="h-1 flex-1 max-w-[160px] rounded-full bg-secondary overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-brand-orange transition-all"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          {formatProgress(task.timeSpent)} / {formatEstimation(task.estimatedTime)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleComplete(task.id);
+                    }}
+                    aria-label={isCompleted ? "Marquer comme à faire" : "Marquer comme terminée"}
+                    title={isCompleted ? "Annuler" : "Valider"}
+                    className={cn(
+                      "grid place-items-center size-9 rounded-full shrink-0 transition-all active:scale-90",
                       isCompleted
-                        ? "bg-slate-700/50 hover:bg-slate-700 text-slate-300 border-slate-600/30"
-                        : "bg-emerald-500 hover:bg-emerald-400 text-slate-950"
-                    }`}
+                        ? "bg-brand-orange text-white shadow-md shadow-brand-orange/30"
+                        : isSelected
+                        ? "border-2 border-brand-orange text-brand-orange hover:bg-brand-orange/10"
+                        : "border-2 border-border text-muted-foreground hover:border-brand-orange hover:text-brand-orange"
+                    )}
                   >
-                    {isCompleted ? "Annuler" : "Valider"}
-                  </Button>
+                    <Check className="size-5" strokeWidth={3} />
+                  </button>
                 </div>
               </div>
             );
           })
         )}
+
+        {/* Add-task pill */}
+        <button
+          type="button"
+          onClick={openAddModal}
+          aria-label="Ajouter une tâche"
+          className="w-full grid place-items-center rounded-full py-3.5 bg-card ring-1 ring-border shadow-[0_6px_20px_rgb(0_0_0/0.06)] text-muted-foreground hover:text-brand-orange hover:shadow-[0_8px_24px_rgb(0_0_0/0.1)] transition-all active:scale-[0.99]"
+        >
+          <Plus className="size-6" />
+        </button>
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-sm">
+        <DialogContent className="bg-card text-card-foreground border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-100">
+            <DialogTitle className="text-base font-bold text-foreground">
               Ajouter une tâche
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitAdd} className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-400 font-medium mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Titre de la tâche
               </label>
               <input
@@ -231,37 +242,37 @@ export function Tasks({
                 value={titleInput}
                 onChange={(e) => setTitleInput(e.target.value)}
                 placeholder="Ex: Écrire la documentation"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 font-medium mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Temps estimé
               </label>
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1">
+                <div className="flex items-center bg-background border border-border rounded-xl px-3 py-1">
                   <input
                     type="number"
                     min="0"
                     max="23"
                     value={hoursInput}
                     onChange={(e) => setHoursInput(Number(e.target.value))}
-                    className="w-full bg-transparent py-1 text-sm text-slate-200 focus:outline-none text-right pr-1 font-mono"
+                    className="w-full bg-transparent py-1 text-sm text-foreground focus:outline-none text-right pr-1 font-mono"
                   />
-                  <span className="text-xs text-slate-500 font-medium">h</span>
+                  <span className="text-xs text-muted-foreground font-medium">h</span>
                 </div>
-                <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1">
+                <div className="flex items-center bg-background border border-border rounded-xl px-3 py-1">
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={minutesInput}
                     onChange={(e) => setMinutesInput(Number(e.target.value))}
-                    className="w-full bg-transparent py-1 text-sm text-slate-200 focus:outline-none text-right pr-1 font-mono"
+                    className="w-full bg-transparent py-1 text-sm text-foreground focus:outline-none text-right pr-1 font-mono"
                   />
-                  <span className="text-xs text-slate-500 font-medium">m</span>
+                  <span className="text-xs text-muted-foreground font-medium">m</span>
                 </div>
               </div>
             </div>
@@ -271,13 +282,13 @@ export function Tasks({
                 type="button"
                 variant="ghost"
                 onClick={() => setIsAddOpen(false)}
-                className="text-slate-400 hover:bg-slate-700/50"
+                className="text-muted-foreground"
               >
                 Annuler
               </Button>
               <Button
                 type="submit"
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+                className="bg-brand-orange text-white hover:bg-brand-orange/90 font-bold"
               >
                 Confirmer
               </Button>
@@ -287,68 +298,68 @@ export function Tasks({
       </Dialog>
 
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-sm">
+        <DialogContent className="bg-card text-card-foreground border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-100">
+            <DialogTitle className="text-base font-bold text-foreground">
               Modifier la tâche
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={submitEdit} className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-400 font-medium mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Titre
               </label>
               <input
                 type="text"
                 value={titleInput}
                 onChange={(e) => setTitleInput(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 font-medium mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Temps estimé
               </label>
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1">
+                <div className="flex items-center bg-background border border-border rounded-xl px-3 py-1">
                   <input
                     type="number"
                     min="0"
                     max="23"
                     value={hoursInput}
                     onChange={(e) => setHoursInput(Number(e.target.value))}
-                    className="w-full bg-transparent py-1 text-sm text-slate-200 focus:outline-none text-right pr-1 font-mono"
+                    className="w-full bg-transparent py-1 text-sm text-foreground focus:outline-none text-right pr-1 font-mono"
                   />
-                  <span className="text-xs text-slate-500 font-medium">h</span>
+                  <span className="text-xs text-muted-foreground font-medium">h</span>
                 </div>
-                <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1">
+                <div className="flex items-center bg-background border border-border rounded-xl px-3 py-1">
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={minutesInput}
                     onChange={(e) => setMinutesInput(Number(e.target.value))}
-                    className="w-full bg-transparent py-1 text-sm text-slate-200 focus:outline-none text-right pr-1 font-mono"
+                    className="w-full bg-transparent py-1 text-sm text-foreground focus:outline-none text-right pr-1 font-mono"
                   />
-                  <span className="text-xs text-slate-500 font-medium">m</span>
+                  <span className="text-xs text-muted-foreground font-medium">m</span>
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="bg-transparent border-t border-slate-700/50 pt-3 mt-5 flex items-center justify-end gap-2">
+            <DialogFooter className="border-t border-border pt-3 mt-5 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setEditingTask(null)}
-                className="text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors"
+                className="text-muted-foreground"
               >
                 Fermer
               </Button>
               <Button
                 type="submit"
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/10"
+                className="bg-brand-orange text-white hover:bg-brand-orange/90 font-bold"
               >
                 Sauvegarder
               </Button>

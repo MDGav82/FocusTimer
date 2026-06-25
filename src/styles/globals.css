@@ -29,6 +29,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* FocusTimer brand palette (from the Figma swatches) */
+  --color-brand-blue: #0076ff;     /* Crayola Blue   */
+  --color-brand-sky: #2db5ff;      /* Fresh Sky      */
+  --color-brand-indigo: #2a2e45;   /* Space Indigo   */
+  --color-brand-white: #fefefe;    /* White          */
+  --color-brand-platinum: #ebebeb; /* Platinum       */
+  --color-brand-yellow: #fdca40;   /* Golden Pollen  */
+  --color-brand-orange: #f79824;   /* Carrot Orange  */
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -36,6 +46,13 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Rounded, friendly face for the big timer numbers. Falls back to the
+     platform's rounded UI font, then a regular sans, so no web font is
+     required (keeps the app fully offline-first). */
+  --font-display: "Baloo 2", "Fredoka", ui-rounded, "SF Pro Rounded",
+    "Segoe UI Variable Display", system-ui, sans-serif;
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -46,73 +63,98 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ---- Light theme (default, matches the Figma mockup) ---- */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.85rem;
+
+  --background: #f4f5f7;
+  --foreground: #2a2e45;
+
+  --card: #fefefe;
+  --card-foreground: #2a2e45;
+
+  --popover: #ffffff;
+  --popover-foreground: #2a2e45;
+
+  --primary: #0076ff;
+  --primary-foreground: #ffffff;
+
+  --secondary: #ebebeb;
+  --secondary-foreground: #2a2e45;
+
+  --muted: #eef0f3;
+  --muted-foreground: #6b7186;
+
+  --accent: #e8f1ff;
+  --accent-foreground: #0076ff;
+
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+
+  --border: #e6e8ec;
+  --input: #e6e8ec;
+  --ring: #0076ff;
+
+  --chart-1: #0076ff;
+  --chart-2: #2db5ff;
+  --chart-3: #f79824;
+  --chart-4: #fdca40;
+  --chart-5: #2a2e45;
+
+  --sidebar: #fefefe;
+  --sidebar-foreground: #2a2e45;
+  --sidebar-primary: #0076ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f1ff;
+  --sidebar-accent-foreground: #0076ff;
+  --sidebar-border: #e6e8ec;
+  --sidebar-ring: #0076ff;
 }
 
+/* ---- Dark theme (Space Indigo variant of the same palette) ---- */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #161a28;
+  --foreground: #f4f5f7;
+
+  --card: #2a2e45;
+  --card-foreground: #f4f5f7;
+
+  --popover: #2a2e45;
+  --popover-foreground: #f4f5f7;
+
+  --primary: #2db5ff;
+  --primary-foreground: #07223a;
+
+  --secondary: #353a57;
+  --secondary-foreground: #f4f5f7;
+
+  --muted: #353a57;
+  --muted-foreground: #a3a9c4;
+
+  --accent: #1f3147;
+  --accent-foreground: #2db5ff;
+
+  --destructive: #f0676b;
+  --destructive-foreground: #1a0e0f;
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: #2db5ff;
+
+  --chart-1: #2db5ff;
+  --chart-2: #0076ff;
+  --chart-3: #f79824;
+  --chart-4: #fdca40;
+  --chart-5: #c9cee6;
+
+  --sidebar: #2a2e45;
+  --sidebar-foreground: #f4f5f7;
+  --sidebar-primary: #2db5ff;
+  --sidebar-primary-foreground: #07223a;
+  --sidebar-accent: #1f3147;
+  --sidebar-accent-foreground: #2db5ff;
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: #2db5ff;
 }
 
 @layer base {
@@ -120,6 +162,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }

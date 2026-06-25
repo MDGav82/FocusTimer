@@ -1,6 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { PeriodType, type Period } from "@/model/Period";
+import { GripVertical, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PeriodEditorProps {
   localCycleName: string;
@@ -30,21 +32,21 @@ export function PeriodEditor({
   onDragEnd,
 }: PeriodEditorProps) {
   return (
-    <div className="bg-slate-900/20 border border-dashed border-slate-700 p-4 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="flex flex-col gap-1.5 border-b border-slate-800 pb-3">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nom du cycle</label>
+    <div className="bg-secondary/40 border border-dashed border-border p-4 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="flex flex-col gap-1.5 border-b border-border pb-3">
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nom du cycle</label>
         <input
           type="text"
           value={localCycleName}
           onChange={(e) => onChangeName(e.target.value)}
           placeholder="Ex: Travail Intense, Routine douce..."
-          className="bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-lg px-3 py-2 w-full focus:outline-none focus:border-amber-500/60 transition-all font-medium"
+          className="bg-background border border-border text-xs text-foreground rounded-lg px-3 py-2 w-full focus:outline-none focus:border-brand-yellow focus:ring-2 focus:ring-brand-yellow/20 transition-all font-medium"
         />
       </div>
 
       <div className="flex justify-between items-center pb-1">
-        <span className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wider">
-          Configuration des périodes (Glisser-Déposer ☰ pour réordonner)
+        <span className="text-[10px] font-bold text-brand-orange uppercase tracking-wider">
+          Configuration des périodes (glisser-déposer pour réordonner)
         </span>
       </div>
 
@@ -59,18 +61,21 @@ export function PeriodEditor({
               onDragStart={() => onDragStart(idx)}
               onDragOver={(e) => onDragOver(e, idx)}
               onDragEnd={onDragEnd}
-              className={`flex items-center gap-3 bg-slate-800/60 border p-2.5 rounded-xl transition ${
-                draggedIndex === idx ? "opacity-40 border-amber-500" : "border-slate-700/40"
-              }`}
+              className={cn(
+                "flex items-center gap-3 bg-card border p-2.5 rounded-xl transition",
+                draggedIndex === idx ? "opacity-40 border-brand-orange" : "border-border"
+              )}
             >
-              <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 px-1 text-base select-none">☰</div>
+              <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground select-none">
+                <GripVertical className="size-4" />
+              </div>
 
-              <span className="text-[11px] font-mono text-slate-500 bg-slate-950/40 px-1.5 py-0.5 rounded">#{idx + 1}</span>
+              <span className="text-[11px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">#{idx + 1}</span>
 
               <select
                 value={p.typePeriode}
                 onChange={(e) => onChangeType(idx, Number(e.target.value) as PeriodType)}
-                className="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-amber-500/50"
+                className="bg-background border border-border text-xs text-foreground rounded-lg px-2 py-1 focus:outline-none focus:border-brand-yellow"
               >
                 <option value={PeriodType.WORK}>Travail</option>
                 <option value={PeriodType.REST}>Pause</option>
@@ -83,19 +88,19 @@ export function PeriodEditor({
                   max="1440"
                   value={displayMinutes}
                   onChange={(e) => onChangeTime(idx, parseInt(e.target.value) || 0)}
-                  className="bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-lg px-2 py-1 w-16 text-center focus:outline-none focus:border-amber-500/50"
+                  className="bg-background border border-border text-xs text-foreground rounded-lg px-2 py-1 w-16 text-center focus:outline-none focus:border-brand-yellow"
                 />
-                <span className="text-xs text-slate-400 mr-2">min</span>
+                <span className="text-xs text-muted-foreground mr-2">min</span>
               </div>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onDelete(idx)}
-                className="h-7 w-7 p-0 text-rose-400/70 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 rounded-lg transition"
                 title="Supprimer la période"
               >
-                ✕
+                <X className="size-4" />
               </Button>
             </div>
           );
@@ -106,9 +111,9 @@ export function PeriodEditor({
         <Button
           type="button"
           onClick={onAdd}
-          className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-bold px-4 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95"
+          className="bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 text-xs font-bold gap-1.5 active:scale-95"
         >
-          <span className="text-sm font-extrabold">+</span> Ajouter une période
+          <Plus className="size-3.5" /> Ajouter une période
         </Button>
       </div>
     </div>
