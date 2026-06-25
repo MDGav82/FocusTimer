@@ -8,10 +8,23 @@ import type { User } from "@/model/User.ts";
 export function AuthPage() {
   const navigate = useNavigate();
   
+  // false = Inscription, true = Connexion
+  const [isLogin, setIsLogin] = useState<boolean>(false);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fonction de test pour inspecter la session courante via /api/auth/me
+  const handleTestMe = async () => {
+    try {
+      const data = await apiFetch(`/api/auth/me`, { method: "GET" });
+      alert("Infos de l'utilisateur connecté :\n\n" + JSON.stringify(data, null, 2));
+    } catch (err: any) {
+      alert("Erreur ou Non connecté (401) :\n\n" + (err.message || JSON.stringify(err)));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,25 +32,41 @@ export function AuthPage() {
     setError(null);
 
     try {
+      let data: unknown;
 
-      const sessionMeta = await UserRepository.getLastSessionMeta(); //Récupération des métadonnées de la session locale actuelle
-      const localUserId = sessionMeta?.lastUserId!;
-      const userFull = await UserRepository.getById(localUserId);
+      if (isLogin) {
+        // --- LOGIQUE DE CONNEXION ---
+        data = await apiFetch(`/api/auth/login`, {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // --- LOGIQUE D'INSCRIPTION ---
+        const sessionMeta = await UserRepository.getLastSessionMeta();
+        const localUserId = sessionMeta?.lastUserId!;
+        const userFull = await UserRepository.getById(localUserId);
 
-      const data = await apiFetch(`/api/auth/register`, {
-        method: "POST",
-        body: JSON.stringify({ 
-          email: email,
-          password: password,
-          id: userFull?.id,
-          parameters: userFull?.parameters
-        }),
-        headers: { "Content-Type": "application/json" },
+        data = await apiFetch(`/api/auth/register`, {
+          method: "POST",
+          body: JSON.stringify({ 
+            email: email,
+            password: password,
+            id: userFull?.id,
+            parameters: userFull?.parameters
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      
+      const user = parseEntity(UserSchema, data) as User;
+      await UserRepository.updateSessionMeta({
+        lastUserId: user.id,
       });
 
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue lors de l'inscription.");
+      setError(err.message || "Une erreur est survenue lors de l'authentification.");
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +74,12 @@ export function AuthPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-      {/* Carte d'inscription */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
-        <div className="text-center space-y-2">
+      {/* Carte d'authentification blanche */}
+      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6 relative">
+
+        <div className="text-center space-y-2 pt-2">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-            Créer un compte
+            {isLogin ? "Connexion" : "Créer un compte"}
           </h2>
         </div>
 
@@ -95,9 +125,31 @@ export function AuthPage() {
               isLoading ? "opacity-50 cursor-wait" : ""
             }`}
           >
-            {isLoading ? "Création du compte..." : "S'inscrire"}
+            {isLoading 
+              ? (isLogin ? "Connexion..." : "Création du compte...") 
+              : (isLogin ? "Se connecter" : "S'inscrire")
+            }
           </button>
         </form>
+
+        <hr className="border-gray-200" />
+
+        {/* Zone de bascule */}
+        <div className="text-center text-sm pb-2">
+          <span className="text-gray-600">
+            {isLogin ? "Nouveau sur l'application ?" : "Déjà un compte ?"}
+          </span>{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError(null);
+            }}
+            className="text-red-500 hover:text-red-600 font-medium underline underline-offset-4 ml-1"
+          >
+            {isLogin ? "Créer un compte" : "Se connecter"}
+          </button>
+        </div>
       </div>
     </div>
   );
