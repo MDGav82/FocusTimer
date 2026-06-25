@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { UserSchema, UserUpdateSchema, ParametersUpdateSchema } from "@/model/schemas.ts";
-import { validateResponse, validateResponseList } from "../validateResponse";
+import { validateResponse } from "../validateResponse";
 
 export function toUserJson(row: any) {
   return {
@@ -38,36 +38,20 @@ export async function getUserById(id: string) {
 export const userRoutes = new Elysia()
   .use(requireAuth)
 
-  .get("/api/users", async ({ set }) => {
+  .get("/api/users/:id", async ({ params: { id }, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     try {
-      const rows = await db`
-        SELECT u.id, u.email, u.parameters_id, u.updated_at,
-          p.auto_start_work, p.auto_start_rest,
-          p.auto_restart_cycle, p.notifications_on,
-          p.updated_at AS parameters_updated_at
-        FROM users u
-        JOIN parameters p ON p.id = u.parameters_id
-        ORDER BY u.id ASC
-      `;
-      return validateResponseList(UserSchema, rows.map(toUserJson));
+      const found = await getUserById(id);
+      if (!found) { set.status = 404; return { error: "User not found" }; }
+      return validateResponse(UserSchema, found);
     } catch {
       set.status = 500;
       return { error: "Internal server error" };
     }
   })
 
-  .get("/api/users/:id", async ({ params: { id }, set }) => {
-    try {
-      const user = await getUserById(id);
-      if (!user) { set.status = 404; return { error: "User not found" }; }
-      return validateResponse(UserSchema, user);
-    } catch {
-      set.status = 500;
-      return { error: "Internal server error" };
-    }
-  })
-
-  .put("/api/users/:id", async ({ params: { id }, body, set }) => {
+  .put("/api/users/:id", async ({ params: { id }, body, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     const { email, password } = body;
     try {
       const hashed = password ? await Bun.password.hash(password) : null;
@@ -89,7 +73,8 @@ export const userRoutes = new Elysia()
     }
   }, { body: UserUpdateSchema })
 
-  .delete("/api/users/:id", async ({ params: { id }, set }) => {
+  .delete("/api/users/:id", async ({ params: { id }, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     try {
       const [deleted] = await db`DELETE FROM users WHERE id = ${id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "User not found" }; }
@@ -100,7 +85,8 @@ export const userRoutes = new Elysia()
     }
   })
 
-  .put("/api/users/:id/parameters", async ({ params: { id }, body, set }) => {
+  .put("/api/users/:id/parameters", async ({ params: { id }, body, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     const { autoStartWork, autoStartRest, autoRestartCycle, notificationsOn } =
       body;
     try {
