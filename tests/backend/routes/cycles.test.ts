@@ -44,6 +44,19 @@ describe("auth guard", () => {
   });
 });
 
+describe("authorization (IDOR)", () => {
+  it("returns 403 (without a db call) when listing another user's cycles", async () => {
+    const otherId = crypto.randomUUID();
+
+    const res = await app.handle(
+      new Request(`http://localhost/api/users/${otherId}/cycles`, { headers: authCookie })
+    );
+
+    expect(res.status).toBe(403);
+    expect(dbMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/users/:id/cycles", () => {
   it("returns the user's cycles", async () => {
     dbMock.mockResolvedValueOnce([cycleRow()]);

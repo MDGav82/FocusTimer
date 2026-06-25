@@ -41,6 +41,19 @@ describe("auth guard", () => {
   });
 });
 
+describe("authorization (IDOR)", () => {
+  it("returns 403 (without a db call) when listing another user's history", async () => {
+    const otherId = crypto.randomUUID();
+
+    const res = await app.handle(
+      new Request(`http://localhost/api/users/${otherId}/history`, { headers: authCookie })
+    );
+
+    expect(res.status).toBe(403);
+    expect(dbMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/users/:id/history", () => {
   it("returns the user's history entries", async () => {
     dbMock.mockResolvedValueOnce([historyRow()]);
