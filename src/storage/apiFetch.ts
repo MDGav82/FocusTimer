@@ -2,7 +2,11 @@ import { z } from "zod";
 
 /** Fetches `url` and rejects if the response status is not ok, instead of silently treating an error body as valid data. */
 export async function apiFetch(url: string, init?: RequestInit): Promise<unknown> {
-    const res = await fetch(url, init);
+    // JSON par défaut ; un Content-Type explicite (placé après) garde la priorité.
+    const res = await fetch(url, {
+        ...init,
+        headers: { "Content-Type": "application/json", ...init?.headers },
+    });
     if (!res.ok) {
         throw new Error(`API request to ${url} failed with status ${res.status}`);
     }

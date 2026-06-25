@@ -1,4 +1,4 @@
-// One-off admin process (12-factor XII): applies pending SQL migrations against
+// Applies pending SQL migrations against
 // the database, using the same codebase and configuration as the app.
 
 import { readdir } from "node:fs/promises";

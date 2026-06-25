@@ -1,7 +1,4 @@
-// 12-factor XI: treat logs as event streams. Emit one structured JSON line per
-// event, unbuffered, to stdout (info) / stderr (error). The execution
-// environment (Docker, etc.) handles routing and archival — the app never opens
-// log files or manages rotation itself.
+//  Logs as event streams. 
 type Fields = Record<string, unknown>;
 
 function emit(stream: NodeJS.WriteStream, level: string, fields: Fields) {
