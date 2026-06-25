@@ -1,9 +1,9 @@
-import {useEffect, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
-import type {Cycle as CycleModel} from "@/model/Cycle";
-import {type Period, PeriodType} from "@/model/Period";
-import {PeriodRepository} from "@/storage/repositories";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import type { Cycle as CycleModel } from "@/model/Cycle";
+import { type Period, PeriodType } from "@/model/Period";
+import { PeriodRepository } from "@/storage/repositories";
 import { PeriodEditor } from "@/app/cycle/PeriodEditor";
 import { Timer as TimerIcon, Pause, Plus, Copy, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,7 +85,7 @@ export function Cycle({
   const [localPeriods, setLocalPeriods] = useState<Period[]>([]);
   const [localCycleName, setLocalCycleName] = useState<string>("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  // Cache des périodes par cycle, car CycleModel ne contient pas les périodes
+  // Cache des périodes par cycle
   const [periodsByCycle, setPeriodsByCycle] = useState<Record<string, Period[]>>({});
 
   // Charger les périodes pour tous les cycles fournis
@@ -99,22 +99,32 @@ export function Cycle({
       try {
         const entries = await Promise.all(
           cycles.map(async (c) => {
+            if (c.id === editingCycleId) {
+              return [c.id, null] as const;
+            }
             const periods = await PeriodRepository.getPeriodsForCycle(c.id);
             return [c.id, periods] as const;
           })
         );
         if (!active) return;
-        const map: Record<string, Period[]> = {};
-        for (const [id, ps] of entries) map[id] = ps;
-        setPeriodsByCycle(map);
+        
+        setPeriodsByCycle((prev) => {
+          const map: Record<string, Period[]> = { ...prev };
+          for (const [id, ps] of entries) {
+            if (ps !== null) {
+              map[id] = ps;
+            }
+          }
+          return map;
+        });
       } catch {
-        // en cas d'échec, ne bloque pas l'UI; l'édition chargera à la demande
+        // Ignorer l'échec pour ne pas bloquer l'UI
       }
     })();
     return () => {
       active = false;
     };
-  }, [cycles]);
+  }, [cycles, editingCycleId]);
 
   const handleStartEdit = (cycle: CycleModel) => {
     if (editingCycleId === cycle.id) {
@@ -127,7 +137,6 @@ export function Cycle({
       if (cached) {
         setLocalPeriods([...cached]);
       } else {
-        // Charger à la demande si non présent dans le cache
         (async () => {
           const ps = await PeriodRepository.getPeriodsForCycle(cycle.id);
           setLocalPeriods([...ps]);
@@ -148,24 +157,36 @@ export function Cycle({
   const handleUpdatePeriodType = (idx: number, type: PeriodType) => {
     const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, typePeriode: type } : p));
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
   const handleUpdatePeriodTime = (idx: number, minutes: number) => {
     const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, time: Math.max(0, minutes) * 60 } : p));
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
   const handleDeletePeriod = (idx: number) => {
     const updated = localPeriods.filter((_, i) => i !== idx);
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
@@ -176,10 +197,10 @@ export function Cycle({
       index: localPeriods.length,
       typePeriode: PeriodType.WORK,
       time: 25 * 60,
-    })
+    });
     const updated = [...localPeriods, newPeriod];
     setLocalPeriods(updated);
-    // tenir à jour le cache pour l'affichage de la liste/timeline
+    
     setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
     if (onUpdateCycle) {
       onUpdateCycle(editingCycleId, updated, localCycleName);
@@ -203,8 +224,12 @@ export function Cycle({
 
     setDraggedIndex(index);
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
@@ -214,7 +239,6 @@ export function Cycle({
 
   return (
     <div className="space-y-5">
-      {/* Cycle name + "Changer le cycle" (opens the selection dialog) */}
       <div className="flex items-center justify-end gap-3">
         <span className="text-lg font-semibold text-foreground">{currentCycleName}</span>
         <Dialog>
@@ -256,7 +280,7 @@ export function Cycle({
                           isEditing
                             ? "border-brand-yellow/60 bg-brand-yellow/5"
                             : isActive
-                            ? "border-brand-orange/50 bg-brand-orange/5 ring-1 ring-brand-orange/20"
+                            ? "border-brand-orange/50 bg-brand-orange/5 ring-1 ring-brand-orange/20 animate-none cursor-default"
                             : "border-border bg-secondary/40 hover:border-muted-foreground/40 cursor-pointer"
                         )}
                       >
@@ -313,10 +337,16 @@ export function Cycle({
                           <Button
                             variant={isEditing ? "default" : "outline"}
                             size="sm"
+                            disabled={!isActive}
+                            title={!isActive ? "Sélectionnez ce cycle pour pouvoir le modifier" : undefined}
                             onClick={() => handleStartEdit(cycle)}
                             className={cn(
-                              "text-xs h-8 w-full gap-1.5 active:scale-95",
-                              isEditing && "bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 font-semibold"
+                              "text-xs h-8 w-full gap-1.5 transition-all",
+                              isEditing 
+                                ? "bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 font-semibold active:scale-95" 
+                                : isActive 
+                                ? "active:scale-95" 
+                                : "opacity-40 cursor-not-allowed hover:bg-transparent text-muted-foreground"
                             )}
                           >
                             <Pencil className="size-3.5" />
@@ -372,7 +402,6 @@ export function Cycle({
         </Dialog>
       </div>
 
-      {/* Inline timeline of the active cycle's periods */}
       {activePeriods.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-3">
           {activePeriods.map((period, idx) => (
