@@ -13,13 +13,10 @@ import { TaskStatus } from "@/model/Task.ts";
 const SyncStatus = ['synced', 'pending', 'conflict'] as const
 
 export const ParametersSchema = z.object({
-    id: z.string(),
     autoStartWork: z.boolean(),
     autoStartRest: z.boolean(),
     autoRestartCycle: z.boolean(),
     notificationsOn: z.boolean(),
-    updatedAt: z.number(),
-    _syncStatus: z.enum(SyncStatus),
 });
 
 export const UserSchema = z.object({
@@ -70,6 +67,13 @@ export const TaskSchema = z.object({
  * src/backend/zodOpenApi.ts) instead of being hand-written in the OpenAPI spec.
  * Field names/types mirror what the routes actually read from `body`.
  */
+
+export const RegisterSchema = z.object({
+    id: z.string(),
+    email: z.string(),
+    password: z.string(),
+    parameters: ParametersSchema
+})
 
 export const AuthCredentialsSchema = z.object({
     email: z.email(),

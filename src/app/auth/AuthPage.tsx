@@ -19,16 +19,20 @@ export function AuthPage() {
     setError(null);
 
     try {
+
+      const sessionMeta = await UserRepository.getLastSessionMeta(); //Récupération des métadonnées de la session locale actuelle
+      const localUserId = sessionMeta?.lastUserId!;
+      const userFull = await UserRepository.getById(localUserId);
+
       const data = await apiFetch(`/api/auth/register`, {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email: email,
+          password: password,
+          id: userFull?.id,
+          parameters: userFull?.parameters
+        }),
         headers: { "Content-Type": "application/json" },
-      });
-      
-      const user = parseEntity(UserSchema, data) as User;
-
-      await UserRepository.updateSessionMeta({
-        lastUserId: user.id,
       });
 
       navigate("/");
@@ -41,16 +45,12 @@ export function AuthPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-
       {/* Carte d'inscription */}
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">
             Créer un compte
           </h2>
-          <p className="text-sm text-gray-500">
-            Rejoignez-nous pour sauvegarder et synchroniser vos cycles de travail Pomodoro.
-          </p>
         </div>
 
         {error && (

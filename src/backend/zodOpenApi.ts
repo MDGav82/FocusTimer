@@ -12,7 +12,7 @@ import {
   TaskUpdateSchema,
   PeriodInputSchema,
   CycleCreateSchema,
-  CycleUpdateSchema,
+  CycleUpdateSchema, RegisterSchema,
 } from "@/model/schemas.ts";
 
 /**
@@ -33,6 +33,7 @@ registry.add(PeriodSchema, { id: "Period" });
 registry.add(CycleSchema, { id: "Cycle" });
 registry.add(TaskSchema, { id: "Task" });
 // Request body schemas (API inputs)
+registry.add(RegisterSchema, { id: "Register" });
 registry.add(AuthCredentialsSchema, { id: "AuthCredentials" });
 registry.add(UserUpdateSchema, { id: "UserUpdate" });
 registry.add(ParametersUpdateSchema, { id: "ParametersUpdate" });
