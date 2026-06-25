@@ -95,22 +95,7 @@ export function LandingPage() {
     };
   }, [selectedTaskId, persistTask]);
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-2xl mx-auto py-16 text-center text-sm text-muted-foreground">
-        Chargement…
-      </div>
-    );
-  }
-
-  if (activePeriods.length === 0) {
-    return (
-      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-muted-foreground">
-        Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
-      </div>
-    );
-  }
-
+  
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
   const getElapsedBeforeCurrent = (index: number) => {
     return activePeriods.slice(0, index).reduce((acc, p) => acc + (p.time ?? 0), 0);
@@ -270,7 +255,23 @@ export function LandingPage() {
       setSelectedTask(null);
     }
   };
-
+  
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-16 text-center text-sm text-muted-foreground">
+        Chargement…
+      </div>
+    );
+  }
+  
+  if (activePeriods.length === 0) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-muted-foreground">
+        Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
+      </div>
+    );
+  }
+  
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 pt-2 pb-12">
       <Cycle
