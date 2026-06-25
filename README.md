@@ -1,6 +1,6 @@
 # Description
-This project is a app project to create a Pomodoro.
-It is create with bun and postgres.
+This project is an app to create a Pomodoro.
+It is created with Bun and PostgreSQL.
 
 
 # Prérequis
@@ -9,7 +9,7 @@ It is create with bun and postgres.
 # Install 
 ## bun-react-tailwind-template
 
-1. Clone the repositories.
+1. Clone the repository.
 
 2. To install dependencies:
 
@@ -35,7 +35,7 @@ This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) 
 
 ### Build :
 
-Create a .env with .env.exemple
+Create a .env with .env.example
 
 Build the image :
 ```bash 
@@ -55,7 +55,7 @@ docker exec -it focustimer-postgres-1 psql -U POSTGRES_USER -d POSTGRES_DB
 ```
 
 
-# Acces 
+# Access 
 
 http://localhost:3000/
 # Swagger 
