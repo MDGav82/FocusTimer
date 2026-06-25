@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Trash2 } from "lucide-react";
 import type { Parameters } from "@/model/Parameters";
+import { UserRepository } from "@/storage/repositories";
 
 type ParamsState = Pick<Parameters, "autoStartWork" | "autoStartRest" | "autoRestartCycle" | "notificationsOn">;
 
@@ -29,6 +30,19 @@ export default function SettingsPage() {
         autoStartRest:     false,
         autoRestartCycle:  false,
     });
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            const meta = await UserRepository.getLastSessionMeta();
+            const user = meta ? await UserRepository.getById(meta.lastUserId) : undefined;
+            if (!cancelled) setIsAuthenticated(user?.email !== undefined);
+        })().catch((e) => console.error("Failed to load current user", e));
+
+        return () => { cancelled = true; };
+    }, []);
 
     const toggle = (key: keyof typeof params) =>
         setParams(prev => ({ ...prev, [key]: !prev[key] }));
@@ -41,17 +55,19 @@ export default function SettingsPage() {
                 <h2 className="text-base font-medium text-slate-200">Paramètres</h2>
 
                 {/* Account section */}
-                <div className="rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden divide-y divide-slate-700/30">
-                    {ACCOUNT_ROWS.map(({ label }) => (
-                        <button
-                            key={label}
-                            className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:bg-slate-700/20 transition-colors"
-                        >
-                            <span>{label}</span>
-                            <ChevronRight className="size-4 text-slate-500" />
-                        </button>
-                    ))}
-                </div>
+                {isAuthenticated && (
+                    <div className="rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden divide-y divide-slate-700/30">
+                        {ACCOUNT_ROWS.map(({ label }) => (
+                            <button
+                                key={label}
+                                className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:bg-slate-700/20 transition-colors"
+                            >
+                                <span>{label}</span>
+                                <ChevronRight className="size-4 text-slate-500" />
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Preferences section */}
                 <div className="rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden divide-y divide-slate-700/30">
