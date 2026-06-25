@@ -45,23 +45,23 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
   }, [currentPeriod]);
 
   useEffect(() => {
-    let interval: any = null;
-    
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        onTick();
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
+      let interval: any = null;
       
-      // Lancement de notification
-      sendPeriodNotification(currentPeriod);
+      if (isActive && timeLeft > 0) {
+        interval = setInterval(() => {
+          setTimeLeft((prev) => prev - 1);
+          onTick();
+        }, 1000);
+      } else if (timeLeft === 0 && isActive) {
+        setIsActive(false);
+        
+        sendPeriodNotification(currentPeriod);
+        
+        onNext();
+      }
       
-      onNext();
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, onNext, currentPeriod]);
+      return () => clearInterval(interval);
+    }, [isActive, timeLeft, onNext, currentPeriod]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
