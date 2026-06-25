@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Build frontend
+        run: bun run build
+
+      - name: Start stack
+        run: docker compose up --build -d
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ > /dev/null; then
+              echo "App is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time"
+          docker compose logs
+          exit 1
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
