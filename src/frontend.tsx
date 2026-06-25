@@ -12,7 +12,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardPage from "./app/dashboard/DashboardPage";
 import ParamsPage from "./app/setting/SettingsPage";
 import { LandingPage } from "./app/landing/LandingPage";
-import { AuthPage } from "./app/auth/AuthPage";
+import AuthPage from "./app/auth/AuthPage";
 import { TimerProvider } from "./app/landing/TimerContext";
 
 // Check to avoid multiple calls
