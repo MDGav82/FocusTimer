@@ -24,7 +24,7 @@ interface SessionState {
   setCurrentCycle: Dispatch<SetStateAction<CycleModel | null>>;
   isLoading: boolean;
 
-  // Tâches
+  // Task
   tasks: Task[];
   setTasks: Dispatch<SetStateAction<Task[]>>;
   selectedTask: Task | null;
@@ -45,7 +45,6 @@ interface SessionState {
   next: () => void;
   previous: () => void;
 
-  /** Appelé quand une période se termine (notification système). */
   onPeriodEndRef: React.MutableRefObject<((completed: Period) => void) | null>;
 }
 
