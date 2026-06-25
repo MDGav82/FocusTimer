@@ -1,115 +1,32 @@
-import {useCallback, useEffect, useRef, useState} from "react";
 import {Timer} from "./Timer";
 import {Cycle} from "../cycle/Cycle";
 import {Tasks} from "./Tasks";
-import {defaultPeriod, type Period, PeriodType} from "@/model/Period";
-import {type Task, TaskStatus} from "@/model/Task";
-import {type Cycle as CycleModel, defaultCycle} from "@/model/Cycle";
-import type {User} from "@/model/User.ts";
-import {CycleRepository, PeriodRepository, TaskRepository, UserRepository} from "@/storage/repositories";
+import {defaultPeriod, type Period} from "@/model/Period";
+import {TaskStatus} from "@/model/Task";
+import {defaultCycle} from "@/model/Cycle";
+import {CycleRepository, PeriodRepository, TaskRepository} from "@/storage/repositories";
+import {useTimer} from "./TimerContext";
 
 
 export function LandingPage() {
-  const [isLoading, setLoading] = useState<boolean>(true)
-  const [user, setUser] = useState<User | null>(null)
-
-  const [cycles, setCycles] = useState<CycleModel[]>([]);
-  const [currentCycle, setCurrentCycle] = useState<CycleModel | null>(null)
-  const [activePeriods, setActivePeriods] = useState<Period[]>([]);
-  const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
-
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      let user: User;
-      const lastSessionMeta = await UserRepository.getLastSessionMeta();
-
-      const existingUser = lastSessionMeta
-          ? await UserRepository.getById(lastSessionMeta.lastUserId)
-          : undefined;
-      // Create a fresh local session if there is no meta or the referenced user is gone.
-      user = existingUser ?? await UserRepository.createLocalUser();
-      setUser(user);
-
-      const taskPromise = TaskRepository.getTasksForUser(user.id)
-          .then((tasks) => setTasks(tasks));
-
-      const currentCycles = await CycleRepository.getCyclesForUser(user.id);
-      setCycles(currentCycles);
-
-      // Prefer the cycle saved in the session, falling back to the first available one.
-      const resolvedCycle =
-          currentCycles.find(c => c.id === lastSessionMeta?.selectedCycleId) ?? currentCycles[0];
-      setCurrentCycle(resolvedCycle ?? null);
-
-      const periodsPromise = resolvedCycle
-          ? PeriodRepository.getPeriodsForCycle(resolvedCycle.id).then(periods => setActivePeriods(periods))
-          : Promise.resolve();
-
-      await Promise.all([taskPromise, periodsPromise]);
-    }
-
-    fetchData()
-        .catch((e) => console.error("Failed to initialize session", e))
-        .finally(() => setLoading(false));
-  }, [])
-
-  // Keep the latest tasks reachable from the periodic-flush interval without
-  // re-subscribing it on every tick.
-  const tasksRef = useRef<Task[]>(tasks);
-  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
-
-  const persistTask = useCallback(async (id: string, patch: Partial<Task>) => {
-    try {
-      await TaskRepository.update(id, patch);
-    } catch (e) {
-      console.error("Failed to persist task", e);
-    }
-  }, []);
-
-  const refreshTasks = useCallback(async () => {
-    if (!user) return;
-    try {
-      setTasks(await TaskRepository.getTasksForUser(user.id));
-    } catch (e) {
-      console.error("Failed to refresh tasks", e);
-    }
-  }, [user]);
-
-  // Ticks accumulate timeSpent in local state for a smooth countdown; flush the
-  // selected task to storage every 10s and once more when it is deselected,
-  // instead of writing to the DB on every single tick.
-  const selectedTaskId = selectedTask?.id;
-  useEffect(() => {
-    if (!selectedTaskId) return;
-    const flush = () => {
-      const t = tasksRef.current.find((t) => t.id === selectedTaskId);
-      if (t && t.timeSpent > 0) persistTask(t.id, { timeSpent: t.timeSpent, status: t.status });
-    };
-    const interval = setInterval(flush, 10000);
-    return () => {
-      clearInterval(interval);
-      flush();
-    };
-  }, [selectedTaskId, persistTask]);
-
-  
-  const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
-  const getElapsedBeforeCurrent = (index: number) => {
-    return activePeriods.slice(0, index).reduce((acc, p) => acc + (p.time ?? 0), 0);
-  };
-
-  const nextPeriod = () => {
-    if (activePeriods.length === 0) return;
-    setCurrentPeriodIndex((prevIndex) => (prevIndex + 1) % activePeriods.length);
-  };
-
-  const previousPeriod = () => {
-    if (activePeriods.length === 0) return;
-    setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + activePeriods.length) % activePeriods.length);
-  };
+  const {
+    user,
+    cycles,
+    setCycles,
+    currentCycle,
+    setCurrentCycle,
+    isLoading,
+    tasks,
+    setTasks,
+    selectedTask,
+    setSelectedTask,
+    persistTask,
+    refreshTasks,
+    periods: activePeriods,
+    currentPeriodIndex,
+    setPeriods: setActivePeriods,
+    setCurrentPeriodIndex,
+  } = useTimer();
 
   const handleDeleteCycle = async (id: string) => {
     await PeriodRepository.getPeriodsForCycle(id)
@@ -129,7 +46,6 @@ export function LandingPage() {
     }
     if (id === currentCycle?.id!) {
       setActivePeriods(updatedPeriods);
-      setCurrentPeriodIndex(0);
     }
   };
 
@@ -166,30 +82,6 @@ export function LandingPage() {
 
     const newPeriods = await PeriodRepository.getPeriodsForCycle(targetCycle.id)
     setActivePeriods(newPeriods);
-    setCurrentPeriodIndex(0);
-  };
-
-  const handleTick = () => {
-    const currentPeriod = activePeriods[currentPeriodIndex];
-    if (!selectedTask || !currentPeriod || currentPeriod.typePeriode !== PeriodType.WORK) return;
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id !== selectedTask.id) return task;
-        const updatedTimeSpent = task.timeSpent + 1;
-        const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
-        // Persist immediately on the completion transition; ongoing progress is
-        // flushed by the periodic effect above.
-        if (isCompleted && task.status !== TaskStatus.FINISHED) {
-          persistTask(task.id, { timeSpent: updatedTimeSpent, status: TaskStatus.FINISHED });
-        }
-        return {
-          ...task,
-          timeSpent: updatedTimeSpent,
-          status: isCompleted ? TaskStatus.FINISHED : TaskStatus.PROGRESS,
-          updatedAt: Date.now(),
-        };
-      })
-    );
   };
 
   const handleAddTask = async (title: string, minutes: number) => {
@@ -255,7 +147,7 @@ export function LandingPage() {
       setSelectedTask(null);
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="w-full max-w-2xl mx-auto py-16 text-center text-sm text-muted-foreground">
@@ -263,7 +155,7 @@ export function LandingPage() {
       </div>
     );
   }
-  
+
   if (activePeriods.length === 0) {
     return (
       <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-muted-foreground">
@@ -271,7 +163,7 @@ export function LandingPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 pt-2 pb-12">
       <Cycle
@@ -287,14 +179,7 @@ export function LandingPage() {
         onSelectPeriodIndex={setCurrentPeriodIndex}
       />
 
-      <Timer
-        currentPeriod={activePeriods[currentPeriodIndex]!}
-        onNext={nextPeriod}
-        onPrevious={previousPeriod}
-        totalSessionTime={totalSessionTime}
-        elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
-        onTick={handleTick}
-      />
+      <Timer />
 
       <Tasks
         tasks={tasks}

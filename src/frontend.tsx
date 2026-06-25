@@ -13,6 +13,7 @@ import DashboardPage from "./app/dashboard/DashboardPage";
 import ParamsPage from "./app/setting/SettingsPage";
 import { LandingPage } from "./app/landing/LandingPage";
 import { AuthPage } from "./app/auth/AuthPage";
+import { TimerProvider } from "./app/landing/TimerContext";
 
 // Check to avoid multiple calls
 let hasStarted = false;
@@ -30,14 +31,16 @@ function start() {
   const root = createRoot(document.getElementById("root")!);
   root.render(
   <BrowserRouter>
-    <Routes>
-      <Route element={<App />}>
-        <Route index element={<LandingPage />}/>
-        <Route path="dashboard" element={<DashboardPage />}/>
-        <Route path="settings" element={<ParamsPage />}/>
-        <Route path="authentification" element={<AuthPage />}/>
-      </Route>
-    </Routes>
+    <TimerProvider>
+      <Routes>
+        <Route element={<App />}>
+          <Route index element={<LandingPage />}/>
+          <Route path="dashboard" element={<DashboardPage />}/>
+          <Route path="settings" element={<ParamsPage />}/>
+          <Route path="authentification" element={<AuthPage />}/>
+        </Route>
+      </Routes>
+    </TimerProvider>
   </BrowserRouter>);
 }
 
