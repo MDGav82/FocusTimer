@@ -10,7 +10,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
   // Register — creates the user and sets the httpOnly cookie
   .post("/register", async ({ jwt, cookie, body, set }) => {
-    const { email, password } = body as { email: string; password: string };
+    const { id, email, password, parameters } = body as any;
 
     if (!email || !password) {
       set.status = 400;
@@ -21,12 +21,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       const hashed = await Bun.password.hash(password);
 
       const [params] = await db`
-        INSERT INTO parameters DEFAULT VALUES RETURNING id
+        INSERT INTO parameters (auto_start_work, auto_start_rest, auto_restart_cycle, notifications_on)
+        VALUES (${parameters.auto_start_work}, ${parameters.auto_start_rest}, ${parameters.auto_restart_cycle}, ${parameters.notifications_on}) 
+        RETURNING id
       `;
 
       const [user] = await db`
         INSERT INTO users (id, email, password, parameters_id)
-        VALUES (${crypto.randomUUID()}, ${email}, ${hashed}, ${params.id})
+        VALUES (${id}, ${email}, ${hashed}, ${params.id})
         RETURNING id, email
       `;
 
