@@ -89,7 +89,7 @@ const openApiSpec = {
         summary: "Register a new user",
         requestBody: {
           required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/AuthCredentials" } } },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Register" } } },
         },
         responses: {
           "201": { description: "User created, token cookie set", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },

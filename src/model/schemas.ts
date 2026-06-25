@@ -13,17 +13,14 @@ import { TaskStatus } from "@/model/Task.ts";
 const SyncStatus = ['synced', 'pending', 'conflict'] as const
 
 export const ParametersSchema = z.object({
-    id: z.string(),
     autoStartWork: z.boolean(),
     autoStartRest: z.boolean(),
     autoRestartCycle: z.boolean(),
     notificationsOn: z.boolean(),
-    updatedAt: z.number(),
-    _syncStatus: z.enum(SyncStatus),
 });
 
 export const UserSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     email: z.string(),
     parameters: ParametersSchema,
     updatedAt: z.number(),
@@ -31,7 +28,7 @@ export const UserSchema = z.object({
 });
 
 export const PeriodSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     cycle_id: z.string(),
     time: z.number(),
     index: z.number(),
@@ -41,7 +38,7 @@ export const PeriodSchema = z.object({
 });
 
 export const CycleSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     user_id: z.string(),
     name: z.string(),
     updatedAt: z.number(),
@@ -49,7 +46,7 @@ export const CycleSchema = z.object({
 });
 
 export const TaskSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     user_id: z.string(),
     title: z.string(),
     description: z.string(),
@@ -71,7 +68,15 @@ export const TaskSchema = z.object({
  * Field names/types mirror what the routes actually read from `body`.
  */
 
+export const RegisterSchema = z.object({
+    id: z.uuid(),
+    email: z.email(),
+    password: z.string().min(1),
+    parameters: ParametersSchema,
+})
+
 export const AuthCredentialsSchema = z.object({
+    id: z.uuid(),
     email: z.email(),
     password: z.string().min(1),
 });
@@ -89,6 +94,7 @@ export const ParametersUpdateSchema = z.object({
 });
 
 export const TaskCreateSchema = z.object({
+    id: z.uuid(),
     title: z.string(),
     description: z.string().optional(),
     estimatedTime: z.number().optional(),
@@ -106,12 +112,14 @@ export const TaskUpdateSchema = z.object({
 });
 
 export const PeriodInputSchema = z.object({
+    id: z.uuid(),
     typePeriode: z.enum(PeriodType).meta({ description: "PeriodType enum: 0 = work, 1 = break" }),
     time: z.number().meta({ description: "Duration in seconds" }),
     index: z.number().meta({ description: "Order within the cycle" }),
 });
 
 export const CycleCreateSchema = z.object({
+    id: z.uuid().optional(),
     name: z.string(),
 });
 

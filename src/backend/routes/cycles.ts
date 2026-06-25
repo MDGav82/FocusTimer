@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { CycleSchema, PeriodSchema } from "@/model/schemas.ts";
+import { CycleCreateSchema,CycleUpdateSchema, CycleSchema, PeriodSchema, PeriodInputSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)
@@ -57,8 +57,7 @@ export const cycleRoutes = new Elysia()
   })
 
   .post("/api/users/:id/cycles", async ({ params: { id }, body, set }) => {
-    const { id: cycleId, name } = body as any;
-    if (!name) { set.status = 400; return { error: "Name is required" }; }
+    const { id: cycleId, name } = body;
     try {
       const [cycle] = await db`
         INSERT INTO cycle (id, user_id, name)
@@ -71,7 +70,7 @@ export const cycleRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, {body: CycleCreateSchema})
 
   .get("/api/cycles/:id", async ({ params: { id }, set }) => {
     try {
@@ -85,7 +84,7 @@ export const cycleRoutes = new Elysia()
   })
 
   .put("/api/cycles/:id", async ({ params: { id }, body, set }) => {
-    const { name } = body as any;
+    const { name } = body;
     try {
       if (name !== undefined) {
         const [updated] = await db`
@@ -102,7 +101,7 @@ export const cycleRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, {body:CycleUpdateSchema})
 
   .delete("/api/cycles/:id", async ({ params: { id }, set }) => {
     try {
@@ -134,11 +133,7 @@ export const cycleRoutes = new Elysia()
   })
 
   .post("/api/cycles/:id/periods", async ({ params: { id }, body, set }) => {
-    const { id: periodId, typePeriode, time, index } = body as any;
-    if (typePeriode === undefined || time === undefined || index === undefined) {
-      set.status = 400;
-      return { error: "typePeriode, time and index are required" };
-    }
+    const { id: periodId, typePeriode, time, index } = body;
     try {
       const [period] = await db`
         INSERT INTO period (id, cycle_id, type_periode_id, time, index)
@@ -156,7 +151,7 @@ export const cycleRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  })
+  }, {body: PeriodInputSchema})
 
   .get("/api/periods/:id", async ({ params: { id }, set }) => {
     try {
