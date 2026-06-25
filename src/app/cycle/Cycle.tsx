@@ -334,7 +334,7 @@ export function Cycle({
                             <Copy className="size-3.5" /> Dupliquer
                           </Button>
 
-                          <Button
+                          {isActive && <Button
                             variant={isEditing ? "default" : "outline"}
                             size="sm"
                             disabled={!isActive}
@@ -350,8 +350,8 @@ export function Cycle({
                             )}
                           >
                             <Pencil className="size-3.5" />
-                            {isEditing ? "Fermer" : "Modifier"}
-                          </Button>
+                            {isEditing ? "Sauvegarder" : "Modifier"}
+                          </Button>}
 
                           <Button
                             variant="destructive"
@@ -363,7 +363,6 @@ export function Cycle({
                           </Button>
                         </div>
                       </div>
-
                       {isEditing && (
                         <PeriodEditor
                           localCycleName={localCycleName}
@@ -379,6 +378,7 @@ export function Cycle({
                           onDragEnd={handleDragEnd}
                         />
                       )}
+
                     </div>
                   );
                 })
