@@ -20,7 +20,7 @@ export const ParametersSchema = z.object({
 });
 
 export const UserSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     email: z.string(),
     parameters: ParametersSchema,
     updatedAt: z.number(),
@@ -28,7 +28,7 @@ export const UserSchema = z.object({
 });
 
 export const PeriodSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     cycle_id: z.string(),
     time: z.number(),
     index: z.number(),
@@ -38,7 +38,7 @@ export const PeriodSchema = z.object({
 });
 
 export const CycleSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     user_id: z.string(),
     name: z.string(),
     updatedAt: z.number(),
@@ -46,7 +46,7 @@ export const CycleSchema = z.object({
 });
 
 export const TaskSchema = z.object({
-    id: z.string(),
+    id: z.uuid(),
     user_id: z.string(),
     title: z.string(),
     description: z.string(),
@@ -69,13 +69,14 @@ export const TaskSchema = z.object({
  */
 
 export const RegisterSchema = z.object({
-    id: z.string(),
-    email: z.string(),
-    password: z.string(),
-    parameters: ParametersSchema
+    id: z.uuid(),
+    email: z.email(),
+    password: z.string().min(1),
+    parameters: ParametersSchema,
 })
 
 export const AuthCredentialsSchema = z.object({
+    id: z.uuid(),
     email: z.email(),
     password: z.string().min(1),
 });
@@ -118,7 +119,7 @@ export const PeriodInputSchema = z.object({
 });
 
 export const CycleCreateSchema = z.object({
-    id: z.string().optional(),
+    id: z.uuid().optional(),
     name: z.string(),
 });
 

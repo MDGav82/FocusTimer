@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { db } from "../db";
 import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
 import { getUserById } from "./users";
-import { AuthCredentialsSchema, UserSchema } from "@/model/schemas.ts";
+import { AuthCredentialsSchema, RegisterSchema, UserSchema } from "@/model/schemas.ts";
 import { validateResponse } from "../validateResponse";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
@@ -10,19 +10,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
   // Register — creates the user and sets the httpOnly cookie
   .post("/register", async ({ jwt, cookie, body, set }) => {
-    const { id, email, password, parameters } = body as any;
-
-    if (!email || !password) {
-      set.status = 400;
-      return { error: "Email and password are required" };
-    }
+    const { id, email, password, parameters } = body;
 
     try {
       const hashed = await Bun.password.hash(password);
 
       const [params] = await db`
         INSERT INTO parameters (auto_start_work, auto_start_rest, auto_restart_cycle, notifications_on)
-        VALUES (${parameters.auto_start_work}, ${parameters.auto_start_rest}, ${parameters.auto_restart_cycle}, ${parameters.notifications_on}) 
+        VALUES (${parameters.autoStartWork}, ${parameters.autoStartRest}, ${parameters.autoRestartCycle}, ${parameters.notificationsOn})
         RETURNING id
       `;
 
@@ -51,7 +46,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       set.status = 500;
       return { error: "Internal server error" };
     }
-  }, { body: AuthCredentialsSchema })
+  }, { body: RegisterSchema })
 
   // Login — verifies credentials and sets the httpOnly cookie
   .post("/login", async ({ jwt, cookie, body, set }) => {
