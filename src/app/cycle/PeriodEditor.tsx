@@ -87,7 +87,11 @@ export function PeriodEditor({
                   min="1"
                   max="1440"
                   value={displayMinutes}
-                  onChange={(e) => onChangeTime(idx, parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    const safeMinutes = isNaN(val) || val < 1 ? 1 : val;
+                    onChangeTime(idx, safeMinutes);
+                  }}
                   className="bg-background border border-border text-xs text-foreground rounded-lg px-2 py-1 w-16 text-center focus:outline-none focus:border-brand-yellow"
                 />
                 <span className="text-xs text-muted-foreground mr-2">min</span>
