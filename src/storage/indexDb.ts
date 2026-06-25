@@ -7,7 +7,7 @@ import {UserStoreOptions, UserMetaStoreOptions} from "@/model/User.ts";
 import {OutboxStoreOptions} from "@/storage/sync/OutboxQueue.ts";
 
 const DB_NAME = "focusTimer";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type StoreOptions = {
     name: string,

@@ -50,17 +50,12 @@ export class HybridUserRepository extends GenericHybridRepository<User> implemen
     async createLocalUser(): Promise<User> {
         const now = Date.now();
         const user: User = {
-            // The user store uses in-line keys (keyPath 'id'), and getLastSessionUser
-            // looks the local session up under this fixed sentinel id.
-            id: 'lastSessionUser',
+            id: this.generateId(),
             email: undefined,
             parameters: defaultParams,
             updatedAt: now,
             _syncStatus: 'pending',
         };
-        // Bootstrap is device-local: create the cycle and its periods *before* the
-        // session meta exists, so canUseApi() stays false (hasSession() is meta-based)
-        // and nothing is pushed to a server that doesn't know this local user yet.
         const cycle = await CycleRepository.createCycleForUser(user.id, defaultCycle);
         await Promise.all(
             defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(cycle.id, period))
