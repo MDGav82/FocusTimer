@@ -7,7 +7,7 @@ import {IdbUserRepository} from "@/storage/repositories/user/IdbUserRepository.t
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
 import {CycleRepository, PeriodRepository} from "@/storage/repositories";
 import {defaultCycle} from "@/model/Cycle.ts";
-import {defaultPeriod, PeriodType} from "@/model/Period.ts";
+import {defaultPeriod} from "@/model/Period.ts";
 
 export class HybridUserRepository extends GenericHybridRepository<User> implements IUserRepository {
     protected declare api: ApiUserRepository;
@@ -35,12 +35,8 @@ export class HybridUserRepository extends GenericHybridRepository<User> implemen
             }
         }
 
-        return this.outbox.enqueue({
-            op: 'UPDATE',
-            entity: 'parameters',
-            entityId: id,
-            payload: user,
-        }).then(() => user)
+        // parameters can't be put into the outbox as of right now
+        return user;
     }
 
     getLastSessionMeta(): Promise<UserMeta | undefined> {

@@ -35,24 +35,37 @@ beforeEach(async () => {
 
 describe("auth guard", () => {
   it("rejects unauthenticated requests with 401", async () => {
-    const res = await app.handle(new Request("http://localhost/api/users"));
+    const res = await app.handle(new Request(`http://localhost/api/users/${USER_ID}`));
     expect(res.status).toBe(401);
     expect(dbMock).not.toHaveBeenCalled();
   });
 });
 
-describe("GET /api/users", () => {
-  it("returns the list of users", async () => {
-    dbMock.mockResolvedValueOnce([userRow()]);
+describe("authorization (IDOR)", () => {
+  it("returns 403 (without a db call) when reading another user's account", async () => {
+    const otherId = crypto.randomUUID();
 
     const res = await app.handle(
-      new Request("http://localhost/api/users", { headers: authCookie })
+      new Request(`http://localhost/api/users/${otherId}`, { headers: authCookie })
     );
 
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe(USER_ID);
+    expect(res.status).toBe(403);
+    expect(dbMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 (without a db call) when updating another user's parameters", async () => {
+    const otherId = crypto.randomUUID();
+
+    const res = await app.handle(
+      new Request(`http://localhost/api/users/${otherId}/parameters`, {
+        method: "PUT",
+        headers: { ...authCookie, "content-type": "application/json" },
+        body: JSON.stringify({ autoStartWork: false }),
+      })
+    );
+
+    expect(res.status).toBe(403);
+    expect(dbMock).not.toHaveBeenCalled();
   });
 });
 

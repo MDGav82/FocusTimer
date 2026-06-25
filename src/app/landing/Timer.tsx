@@ -1,39 +1,52 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { PeriodType, type Period } from "@/model/Period";
 import { SkipBack, SkipForward, Play, Pause, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTimer } from "./TimerContext";
 
-interface TimerProps {
-  currentPeriod: Period;
-  onNext: () => void;
-  onPrevious: () => void;
-  totalSessionTime: number;
-  elapsedBeforeCurrent: number;
-  onTick: () => void;
-}
 
-export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, elapsedBeforeCurrent, onTick }: TimerProps) {
-  const [timeLeft, setTimeLeft] = useState<number>(currentPeriod.time);
-  const [isActive, setIsActive] = useState<boolean>(false);
+export function Timer() {
+  const {
+    periods,
+    currentPeriod,
+    currentPeriodIndex,
+    timeLeft,
+    isActive,
+    toggleActive,
+    reset,
+    next,
+    previous,
+    onPeriodEndRef,
+  } = useTimer();
 
-  useEffect(() => {
-    setTimeLeft(currentPeriod.time);
-    setIsActive(false);
-  }, [currentPeriod]);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        onTick();
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-      onNext();
+  // Demander la permission des notifications système
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
     }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, onNext]);
+  };
+
+  const sendPeriodNotification = (completedPeriod: Period) => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const isWork = completedPeriod.typePeriode === PeriodType.WORK;
+
+    const title = isWork ? "Beau boulot !" : "Pause terminée !";
+    const options = {
+      body: isWork
+        ? "C'est l'heure de souffler un peu. Prends une pause !"
+        : "Retour au focus, c'est parti pour une nouvelle session !",
+      icon: "/favicon.ico",
+    };
+
+    new Notification(title, options);
+  };
+
+  
+  useEffect(() => {
+    onPeriodEndRef.current = sendPeriodNotification;
+    return () => { onPeriodEndRef.current = null; };
+  });
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -41,10 +54,18 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleReset = () => {
-    setIsActive(false);
-    setTimeLeft(currentPeriod.time);
+
+  const handleToggleActive = () => {
+    requestNotificationPermission();
+    toggleActive();
   };
+
+  if (!currentPeriod) return null;
+
+  const totalSessionTime = periods.reduce((acc, p) => acc + (p.time ?? 0), 0);
+  const elapsedBeforeCurrent = periods
+    .slice(0, currentPeriodIndex)
+    .reduce((acc, p) => acc + (p.time ?? 0), 0);
 
   const currentPeriodElapsed = currentPeriod.time - timeLeft;
   const totalElapsed = elapsedBeforeCurrent + currentPeriodElapsed;
@@ -65,7 +86,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
       <div className="flex items-center justify-center gap-7">
         <button
           type="button"
-          onClick={onPrevious}
+          onClick={previous}
           aria-label="Période précédente"
           title="Précédent"
           className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"
@@ -75,7 +96,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
         <button
           type="button"
-          onClick={() => setIsActive((v) => !v)}
+          onClick={handleToggleActive}
           aria-label={isActive ? "Mettre en pause" : "Démarrer"}
           title={isActive ? "Pause" : "Démarrer"}
           className={cn(
@@ -93,7 +114,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
         <button
           type="button"
-          onClick={handleReset}
+          onClick={reset}
           aria-label="Réinitialiser le chrono"
           title="Réinitialiser"
           className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"
@@ -103,7 +124,7 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
         <button
           type="button"
-          onClick={onNext}
+          onClick={next}
           aria-label="Période suivante"
           title="Suivant"
           className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"

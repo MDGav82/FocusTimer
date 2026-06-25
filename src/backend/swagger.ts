@@ -153,7 +153,7 @@ const openApiSpec = {
         tags: ["Users"],
         summary: "Get a user with their parameters",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "User found", content: { "application/json": { schema: { $ref: "#/components/schemas/User" } } } },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -164,7 +164,7 @@ const openApiSpec = {
         tags: ["Users"],
         summary: "Update a user's email and/or password",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/UserUpdate" } } },
@@ -180,7 +180,7 @@ const openApiSpec = {
         tags: ["Users"],
         summary: "Delete a user",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "204": { description: "User deleted" },
           "404": { description: "User not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -193,7 +193,7 @@ const openApiSpec = {
         tags: ["Parameters"],
         summary: "Update user parameters (partial update)",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/ParametersUpdate" } } },
@@ -210,7 +210,7 @@ const openApiSpec = {
         tags: ["Tasks"],
         summary: "Get all tasks for a user",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "List of tasks", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Task" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -220,7 +220,7 @@ const openApiSpec = {
         tags: ["Tasks"],
         summary: "Create a new task",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/TaskCreate" } } },
@@ -237,7 +237,7 @@ const openApiSpec = {
         tags: ["Tasks"],
         summary: "Get a task by ID",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "Task found", content: { "application/json": { schema: { $ref: "#/components/schemas/Task" } } } },
           "404": { description: "Task not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -248,7 +248,7 @@ const openApiSpec = {
         tags: ["Tasks"],
         summary: "Update a task (partial update)",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/TaskUpdate" } } },
@@ -263,7 +263,7 @@ const openApiSpec = {
         tags: ["Tasks"],
         summary: "Delete a task",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "204": { description: "Task deleted" },
           "404": { description: "Task not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -276,7 +276,7 @@ const openApiSpec = {
         tags: ["Cycles"],
         summary: "Get all cycles for a user",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "List of cycles", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Cycle" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -286,7 +286,7 @@ const openApiSpec = {
         tags: ["Cycles"],
         summary: "Create a new cycle",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CycleCreate" } } },
@@ -303,7 +303,7 @@ const openApiSpec = {
         tags: ["Cycles"],
         summary: "Get a cycle",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "Cycle found", content: { "application/json": { schema: { $ref: "#/components/schemas/Cycle" } } } },
           "404": { description: "Cycle not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -314,7 +314,7 @@ const openApiSpec = {
         tags: ["Cycles"],
         summary: "Update a cycle name",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CycleUpdate" } } },
@@ -329,7 +329,7 @@ const openApiSpec = {
         tags: ["Cycles"],
         summary: "Delete a cycle",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "204": { description: "Cycle deleted" },
           "404": { description: "Cycle not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -342,7 +342,7 @@ const openApiSpec = {
         tags: ["Periods"],
         summary: "Get all periods for a cycle",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "List of periods", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Period" } } } } },
           "404": { description: "Cycle not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -353,7 +353,7 @@ const openApiSpec = {
         tags: ["Periods"],
         summary: "Add a period to a cycle",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: {
@@ -374,7 +374,7 @@ const openApiSpec = {
         tags: ["Periods"],
         summary: "Get a period by ID",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "Period found", content: { "application/json": { schema: { $ref: "#/components/schemas/Period" } } } },
           "404": { description: "Period not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -385,7 +385,7 @@ const openApiSpec = {
         tags: ["Periods"],
         summary: "Update a period (partial update)",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: {
@@ -411,7 +411,7 @@ const openApiSpec = {
         tags: ["Periods"],
         summary: "Delete a period",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "204": { description: "Period deleted" },
           "404": { description: "Period not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -424,7 +424,7 @@ const openApiSpec = {
         tags: ["History"],
         summary: "Get work session history for a user",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           "200": { description: "History entries", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/HistoryEntry" } } } } },
           "500": { description: "Internal server error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
@@ -434,7 +434,7 @@ const openApiSpec = {
         tags: ["History"],
         summary: "Record a work session",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
           content: {

@@ -9,15 +9,22 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json bunfig.toml tsconfig.json bun-env.d.ts build.ts ./
 COPY src/ ./src/
 COPY lib/ ./lib/
+COPY migrations/ ./migrations/
 RUN bun run build.ts
 RUN bun build --compile \
       --define 'process.env.NODE_ENV="production"' \
       --outfile server \
       src/index.ts
+RUN bun build --compile \
+      --define 'process.env.NODE_ENV="production"' \
+      --outfile migrate \
+      src/backend/migrate.ts
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS runner
 WORKDIR /app
 COPY --from=builder --chown=65532:65532 /app/server ./server
+COPY --from=builder --chown=65532:65532 /app/migrate ./migrate
 COPY --from=builder --chown=65532:65532 /app/dist ./dist
+COPY --from=builder --chown=65532:65532 /app/migrations ./migrations
 EXPOSE 3000
 CMD ["/app/server"]
