@@ -96,12 +96,16 @@ export function LandingPage() {
   }, [selectedTaskId, persistTask]);
 
   if (isLoading) {
-    return (<div> Loadding ... </div>);
+    return (
+      <div className="w-full max-w-2xl mx-auto py-16 text-center text-sm text-muted-foreground">
+        Chargement…
+      </div>
+    );
   }
 
   if (activePeriods.length === 0) {
     return (
-      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-slate-400">
+      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-muted-foreground">
         Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
       </div>
     );
@@ -268,18 +272,10 @@ export function LandingPage() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-      <Timer
-        currentPeriod={activePeriods[currentPeriodIndex]!}
-        onNext={nextPeriod}
-        onPrevious={previousPeriod}
-        totalSessionTime={totalSessionTime}
-        elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
-        onTick={handleTick}
-      />
-
+    <div className="w-full max-w-2xl mx-auto space-y-6 pt-2 pb-12">
       <Cycle
         currentCycle={currentCycle}
+        activePeriods={activePeriods}
         currentPeriodIndex={currentPeriodIndex}
         cycles={cycles}
         onDeleteCycle={handleDeleteCycle}
@@ -288,6 +284,15 @@ export function LandingPage() {
         onCreateCycle={handleCreateCycle}
         onSelectCycle={handleSelectCycle}
         onSelectPeriodIndex={setCurrentPeriodIndex}
+      />
+
+      <Timer
+        currentPeriod={activePeriods[currentPeriodIndex]!}
+        onNext={nextPeriod}
+        onPrevious={previousPeriod}
+        totalSessionTime={totalSessionTime}
+        elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
+        onTick={handleTick}
       />
 
       <Tasks

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { PeriodType, type Period } from "@/model/Period";
-import { Button } from "@/components/ui/button";
+import { SkipBack, SkipForward, Play, Pause, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TimerProps {
   currentPeriod: Period;
@@ -10,11 +11,6 @@ interface TimerProps {
   elapsedBeforeCurrent: number;
   onTick: () => void;
 }
-
-const PERIOD_LABELS: Record<PeriodType, string> = {
-  [PeriodType.WORK]: "Travail",
-  [PeriodType.REST]: "Pause",
-};
 
 export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, elapsedBeforeCurrent, onTick }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState<number>(currentPeriod.time);
@@ -52,74 +48,83 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
 
   const currentPeriodElapsed = currentPeriod.time - timeLeft;
   const totalElapsed = elapsedBeforeCurrent + currentPeriodElapsed;
+  const progressPct = totalSessionTime > 0 ? (totalElapsed / totalSessionTime) * 100 : 0;
 
-  const getHeaderStyle = () => {
-    return currentPeriod.typePeriode === PeriodType.WORK
-      ? "text-rose-400 bg-rose-400/10"
-      : "text-cyan-400 bg-cyan-400/10";
-  };
-
-  const displayName = PERIOD_LABELS[currentPeriod.typePeriode] ?? "Période";
+  const isWork = currentPeriod.typePeriode === PeriodType.WORK;
+  const accentBg = isWork ? "bg-brand-orange" : "bg-brand-blue";
+  const accentShadow = isWork ? "shadow-brand-orange/30" : "shadow-brand-blue/30";
 
   return (
-    <div className="bg-slate-800/80 backdrop-blur-md text-white p-8 rounded-2xl shadow-2xl max-w-md mx-auto border border-slate-700/50 text-center">
-      <span className={`text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full transition-colors duration-300 ${getHeaderStyle()}`}>
-        Focus Période : {displayName}
-      </span>
-      
-      <div className="text-7xl font-mono font-extrabold tracking-tight my-6 bg-gradient-to-r from-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(244,63,94,0.2)]">
+    <div className="flex flex-col items-center gap-7 py-4">
+      {/* Big countdown */}
+      <div className="text-7xl sm:text-8xl font-display font-bold tracking-tight text-foreground tabular-nums leading-none">
         {formatTime(timeLeft)}
       </div>
-      
-      <div className="text-xs text-slate-400 mb-6 space-y-2">
-        <p className="flex justify-center items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-          Session globale : <strong className="text-slate-200 font-mono">{formatTime(totalElapsed)}</strong> / <span className="font-mono">{formatTime(totalSessionTime)}</span>
-        </p>
-        <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-700/30">
-          <div 
-            className="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full transition-all duration-300 ease-out"
-            style={{ width: `${totalSessionTime > 0 ? (totalElapsed / totalSessionTime) * 100 : 0}%` }}
-          ></div>
-        </div>
+
+      {/* Playback controls: previous · play/pause · reset · next */}
+      <div className="flex items-center justify-center gap-7">
+        <button
+          type="button"
+          onClick={onPrevious}
+          aria-label="Période précédente"
+          title="Précédent"
+          className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"
+        >
+          <SkipBack className="size-7" fill="currentColor" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsActive((v) => !v)}
+          aria-label={isActive ? "Mettre en pause" : "Démarrer"}
+          title={isActive ? "Pause" : "Démarrer"}
+          className={cn(
+            "grid place-items-center size-14 rounded-full text-white shadow-lg transition-transform hover:scale-105 active:scale-95",
+            accentBg,
+            accentShadow
+          )}
+        >
+          {isActive ? (
+            <Pause className="size-7" fill="currentColor" />
+          ) : (
+            <Play className="size-7 translate-x-0.5" fill="currentColor" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          aria-label="Réinitialiser le chrono"
+          title="Réinitialiser"
+          className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"
+        >
+          <RotateCcw className="size-6" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onNext}
+          aria-label="Période suivante"
+          title="Suivant"
+          className="text-foreground/80 hover:text-foreground transition-transform hover:scale-110 active:scale-95"
+        >
+          <SkipForward className="size-7" fill="currentColor" />
+        </button>
       </div>
 
-      {/* 123 */}
-      <div className="grid grid-cols-4 gap-2.5">
-        <Button 
-          variant="outline"
-          size="lg"
-          onClick={onPrevious} 
-          className="bg-slate-700 hover:bg-slate-600 text-slate-200 border-transparent text-xs font-medium rounded-xl h-auto py-2.5 px-2"
-        >
-          Précédent
-        </Button>
-        <Button 
-          variant="outline"
-          size="lg"
-          onClick={handleReset} 
-          className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/30 text-xs font-medium rounded-xl h-auto py-2.5 px-2"
-        >
-          Reset
-        </Button>
-        <Button
-          variant="default"
-          size="lg"
-          onClick={() => setIsActive(!isActive)}
-          className={`${
-            isActive ? "bg-amber-500 hover:bg-amber-400 text-slate-950" : "bg-emerald-500 hover:bg-emerald-400 text-slate-950"
-          } text-xs font-bold rounded-xl shadow-lg h-auto py-2.5 px-2`}
-        >
-          {isActive ? "Pause" : "Lancer"}
-        </Button>
-        <Button 
-          variant="outline"
-          size="lg"
-          onClick={onNext} 
-          className="bg-slate-700 hover:bg-slate-600 text-slate-200 border-transparent text-xs font-medium rounded-xl h-auto py-2.5 px-2"
-        >
-          Suivant
-        </Button>
+      {/* Overall session progress (subtle) */}
+      <div className="w-full max-w-xs space-y-1.5">
+        <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-300 ease-out", accentBg)}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Session :{" "}
+          <span className="font-medium text-foreground tabular-nums">{formatTime(totalElapsed)}</span>{" "}
+          / <span className="tabular-nums">{formatTime(totalSessionTime)}</span>
+        </p>
       </div>
     </div>
   );

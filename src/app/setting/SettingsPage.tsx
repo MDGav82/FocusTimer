@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { ChevronRight, Trash2, Moon } from "lucide-react";
 import type { Parameters } from "@/model/Parameters";
 import { UserRepository } from "@/storage/repositories";
+import { useTheme } from "@/hooks/useTheme";
 
 type ParamsState = Pick<Parameters, "autoStartWork" | "autoStartRest" | "autoRestartCycle" | "notificationsOn">;
 
@@ -24,6 +25,7 @@ const TOGGLE_ROWS: ToggleRow[] = [
 ];
 
 export default function SettingsPage() {
+    const { isDark, toggleTheme } = useTheme();
     const [params, setParams] = useState<ParamsState>({
         notificationsOn:   true,
         autoStartWork:     false,
@@ -49,31 +51,40 @@ export default function SettingsPage() {
 
     return (
         <div className="w-full max-w-3xl mx-auto space-y-6 py-6">
-            <h1 className="text-2xl font-semibold text-slate-100">Paramètres</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Paramètres</h1>
 
-            <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-6 space-y-4">
-                <h2 className="text-base font-medium text-slate-200">Paramètres</h2>
+            <div className="rounded-xl bg-card border border-border shadow-sm p-6 space-y-4">
+                {/* Appearance */}
+                <div className="rounded-lg bg-secondary/40 border border-border overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3">
+                        <span className="text-sm text-foreground flex items-center gap-2">
+                            <Moon className="size-4 text-muted-foreground" />
+                            Mode sombre
+                        </span>
+                        <Switch checked={isDark} onCheckedChange={toggleTheme} />
+                    </div>
+                </div>
 
                 {/* Account section */}
                 {isAuthenticated && (
-                    <div className="rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden divide-y divide-slate-700/30">
+                    <div className="rounded-lg bg-secondary/40 border border-border overflow-hidden divide-y divide-border">
                         {ACCOUNT_ROWS.map(({ label }) => (
                             <button
                                 key={label}
-                                className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:bg-slate-700/20 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 text-sm text-foreground hover:bg-secondary/80 transition-colors"
                             >
                                 <span>{label}</span>
-                                <ChevronRight className="size-4 text-slate-500" />
+                                <ChevronRight className="size-4 text-muted-foreground" />
                             </button>
                         ))}
                     </div>
                 )}
 
                 {/* Preferences section */}
-                <div className="rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden divide-y divide-slate-700/30">
+                <div className="rounded-lg bg-secondary/40 border border-border overflow-hidden divide-y divide-border">
                     {TOGGLE_ROWS.map(({ label, key }) => (
                         <div key={key} className="flex items-center justify-between px-4 py-3">
-                            <span className="text-sm text-slate-300">{label}</span>
+                            <span className="text-sm text-foreground">{label}</span>
                             <Switch
                                 checked={params[key]}
                                 onCheckedChange={() => toggle(key)}
@@ -82,7 +93,7 @@ export default function SettingsPage() {
                     ))}
 
                     <div className="flex items-center justify-between px-4 py-3">
-                        <span className="text-sm text-rose-400">Suppression des données</span>
+                        <span className="text-sm text-destructive">Suppression des données</span>
                         <Button variant="destructive" size="sm" className="gap-1.5">
                             <Trash2 className="size-3.5" />
                             Supprimer

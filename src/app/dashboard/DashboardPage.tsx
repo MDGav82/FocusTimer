@@ -38,20 +38,25 @@ function getEstimationStatus(estSec: number, spentSec: number): EstimationStatus
 }
 
 const STATUS_COLOR: Record<EstimationStatus, string> = {
-    "respecté": "text-emerald-400",
-    "surestimé": "text-amber-400",
-    "sous-estimé": "text-rose-400",
-    "non démarré": "text-slate-500",
+    "respecté": "text-emerald-600",
+    "surestimé": "text-amber-600",
+    "sous-estimé": "text-rose-600",
+    "non démarré": "text-muted-foreground",
 };
 
 const STATUS_BAR_COLOR: Record<EstimationStatus, string> = {
-    "respecté": "#10b981",
+    "respecté": "#16a34a",
     "surestimé": "#f59e0b",
-    "sous-estimé": "#f43f5e",
-    "non démarré": "#475569",
+    "sous-estimé": "#ef4444",
+    "non démarré": "#9aa1b5",
 };
 
-const PIE_PALETTE = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e", "#06b6d4", "#a855f7", "#84cc16"];
+// Brand-led palette (Crayola Blue, Fresh Sky, Carrot Orange, Golden Pollen, Space Indigo…)
+const PIE_PALETTE = ["#0076ff", "#2db5ff", "#f79824", "#fdca40", "#2a2e45", "#16a34a", "#a855f7"];
+
+// Neutral greys for chart chrome that read acceptably in both light and dark themes.
+const AXIS_TICK_COLOR = "#828aa0";
+const GRID_STROKE = "rgba(130,138,158,0.22)";
 
 function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -162,8 +167,8 @@ export default function DashboardPage() {
 
     // --- Completion donut ---
     const donutConfig: ChartConfig = {
-        finished: { label: "Complétées", color: "#10b981" },
-        pending: { label: "Restantes", color: "#334155" },
+        finished: { label: "Complétées", color: "#0076ff" },
+        pending: { label: "Restantes", color: "rgba(130,138,158,0.3)" },
     };
     const donutData = [
         { name: "Complétées", value: stats.finished.length, fill: "var(--color-finished)" },
@@ -202,21 +207,21 @@ export default function DashboardPage() {
             {/* Header + period filter */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-100">Dashboard</h1>
-                    <p className="text-sm text-slate-400 mt-1">
-                        Complétion · <span className="text-slate-300">{rangeLabel}</span>
+                    <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Complétion · <span className="text-foreground">{rangeLabel}</span>
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="flex rounded-lg border border-slate-700/50 overflow-hidden">
+                    <div className="flex rounded-lg border border-border overflow-hidden">
                         {(["jour", "semaine", "mois"] as PeriodMode[]).map((m) => (
                             <button
                                 key={m}
                                 onClick={() => setMode(m)}
                                 className={`px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                                     mode === m
-                                        ? "bg-cyan-500/20 text-cyan-300"
-                                        : "text-slate-400 hover:bg-slate-800/60"
+                                        ? "bg-brand-blue/10 text-brand-blue"
+                                        : "text-muted-foreground hover:bg-secondary"
                                 }`}
                             >
                                 {m}
@@ -227,36 +232,36 @@ export default function DashboardPage() {
                         type="date"
                         value={toInputValue(anchor)}
                         onChange={(e) => e.target.value && setAnchor(new Date(e.target.value))}
-                        className="bg-slate-900 border border-slate-700/50 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
+                        className="bg-card border border-border rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-blue"
                     />
                 </div>
             </div>
 
             {loading ? (
-                <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-10 text-center text-sm text-slate-400">
+                <div className="rounded-xl bg-card border border-border shadow-sm p-10 text-center text-sm text-muted-foreground">
                     Chargement…
                 </div>
             ) : error === "noSession" ? (
-                <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-10 text-center text-sm text-slate-400">
+                <div className="rounded-xl bg-card border border-border shadow-sm p-10 text-center text-sm text-muted-foreground">
                     Aucune session locale trouvée. Ouvre d'abord la page d'accueil pour démarrer une session,
                     puis reviens ici.
                 </div>
             ) : error ? (
-                <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-6 text-center text-sm text-rose-300">
+                <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-6 text-center text-sm text-destructive">
                     Impossible de charger les tâches.
-                    <span className="block mt-1 text-xs text-rose-400/70 font-mono">{error}</span>
+                    <span className="block mt-1 text-xs text-destructive/70 font-mono">{error}</span>
                 </div>
             ) : tasks.length === 0 ? (
-                <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-10 text-center text-sm text-slate-400">
+                <div className="rounded-xl bg-card border border-border shadow-sm p-10 text-center text-sm text-muted-foreground">
                     Aucune tâche sur cette période.
                 </div>
             ) : (
                 <>
                     {/* Block 1 — completion + headline KPIs */}
-                    <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-6">
+                    <div className="rounded-xl bg-card border border-border shadow-sm p-6">
                         <div className="flex flex-col sm:flex-row gap-6 items-start">
                             <div className="flex flex-col items-center gap-1 min-w-[168px]">
-                                <span className="text-xs text-slate-400 mb-1">Tâches complétées</span>
+                                <span className="text-xs text-muted-foreground mb-1">Tâches complétées</span>
                                 <div className="relative">
                                     <ChartContainer config={donutConfig} className="h-[150px] w-[150px]">
                                         <PieChart>
@@ -277,37 +282,37 @@ export default function DashboardPage() {
                                         </PieChart>
                                     </ChartContainer>
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="text-2xl font-bold text-slate-100">
+                                        <span className="text-2xl font-bold text-foreground">
                                             {stats.successRate}%
                                         </span>
                                     </div>
                                 </div>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-muted-foreground">
                                     {stats.finished.length} / {tasks.length} tâches finies
                                 </span>
                             </div>
 
                             <div className="flex-1 grid grid-cols-2 gap-3 w-full">
                                 <KpiCard
-                                    icon={<Clock className="size-3.5 text-violet-400" />}
+                                    icon={<Clock className="size-3.5 text-brand-blue" />}
                                     label="Travail au total"
                                     value={formatHours(stats.totalSpent)}
                                     hint={`${stats.pomodoros} pomodoros`}
                                 />
                                 <KpiCard
-                                    icon={<Hourglass className="size-3.5 text-indigo-400" />}
+                                    icon={<Hourglass className="size-3.5 text-brand-sky" />}
                                     label="Travail estimé"
                                     value={formatHours(stats.totalEstimated)}
                                     hint="somme des estimations"
                                 />
                                 <KpiCard
-                                    icon={<PiggyBank className="size-3.5 text-emerald-400" />}
+                                    icon={<PiggyBank className="size-3.5 text-brand-orange" />}
                                     label="Temps économisé"
                                     value={formatHours(stats.saved)}
                                     hint="estimé − réel"
                                 />
                                 <KpiCard
-                                    icon={<CheckCircle2 className="size-3.5 text-cyan-400" />}
+                                    icon={<CheckCircle2 className="size-3.5 text-emerald-600" />}
                                     label="Tâches finies"
                                     value={String(stats.finished.length)}
                                     hint={`sur ${tasks.length} au total`}
@@ -317,8 +322,8 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Block 2 — time per task + per-task stats */}
-                    <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-6 space-y-5">
-                        <h2 className="text-base font-medium text-slate-200">Temps passé par tâche</h2>
+                    <div className="rounded-xl bg-card border border-border shadow-sm p-6 space-y-5">
+                        <h2 className="text-base font-medium text-foreground">Temps passé par tâche</h2>
                         <div className="flex flex-col sm:flex-row gap-6 items-center">
                             {pieData.length > 0 ? (
                                 <ChartContainer config={pieConfig} className="h-[180px] w-[180px]">
@@ -332,7 +337,7 @@ export default function DashboardPage() {
                                     </PieChart>
                                 </ChartContainer>
                             ) : (
-                                <div className="h-[180px] w-[180px] flex items-center justify-center text-xs text-slate-500">
+                                <div className="h-[180px] w-[180px] flex items-center justify-center text-xs text-muted-foreground">
                                     Pas encore de temps enregistré
                                 </div>
                             )}
@@ -346,22 +351,22 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Block 3 — estimation difference */}
-                    <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-6 space-y-5">
+                    <div className="rounded-xl bg-card border border-border shadow-sm p-6 space-y-5">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-base font-medium text-slate-200">Écart d'estimation</h2>
+                            <h2 className="text-base font-medium text-foreground">Écart d'estimation</h2>
                             <div className="flex items-center gap-4 text-xs">
-                                <span className="text-amber-400">▲ surestimé</span>
-                                <span className="text-rose-400">▼ sous-estimé</span>
+                                <span className="text-amber-600">▲ surestimé</span>
+                                <span className="text-rose-600">▼ sous-estimé</span>
                             </div>
                         </div>
 
                         {barData.length > 0 ? (
                             <ChartContainer config={barConfig} className="h-[220px] w-full">
                                 <BarChart data={barData} barCategoryGap="30%">
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                    <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} unit=" min" />
-                                    <ReferenceLine y={0} stroke="#f43f5e" strokeWidth={1.5} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fill: AXIS_TICK_COLOR, fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fill: AXIS_TICK_COLOR, fontSize: 11 }} axisLine={false} tickLine={false} unit=" min" />
+                                    <ReferenceLine y={0} stroke={AXIS_TICK_COLOR} strokeWidth={1.5} />
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <Bar dataKey="diff" radius={[4, 4, 0, 0]}>
                                         {barData.map((entry, i) => (
@@ -371,7 +376,7 @@ export default function DashboardPage() {
                                 </BarChart>
                             </ChartContainer>
                         ) : (
-                            <p className="text-xs text-slate-500 text-center py-6">
+                            <p className="text-xs text-muted-foreground text-center py-6">
                                 Aucune tâche démarrée sur cette période.
                             </p>
                         )}
@@ -384,11 +389,11 @@ export default function DashboardPage() {
                                 return (
                                     <div
                                         key={t.id}
-                                        className="rounded-lg border border-slate-700/40 bg-slate-800/40 px-4 py-2.5 flex items-center justify-between gap-4"
+                                        className="rounded-lg border border-border bg-secondary/40 px-4 py-2.5 flex items-center justify-between gap-4"
                                     >
                                         <div className="min-w-0">
-                                            <span className="text-sm text-slate-200 truncate block">{t.title}</span>
-                                            <span className="text-xs text-slate-500">
+                                            <span className="text-sm text-foreground truncate block">{t.title}</span>
+                                            <span className="text-xs text-muted-foreground">
                                                 {t.estimatedTime} min estimé · {formatDuration(t.timeSpent)} réel
                                             </span>
                                         </div>
@@ -397,7 +402,7 @@ export default function DashboardPage() {
                                             {diffMin !== null && (
                                                 <div
                                                     className={`text-xs font-medium ${
-                                                        diffMin > 0 ? "text-rose-400" : diffMin < 0 ? "text-amber-400" : "text-emerald-400"
+                                                        diffMin > 0 ? "text-rose-600" : diffMin < 0 ? "text-amber-600" : "text-emerald-600"
                                                     }`}
                                                 >
                                                     {diffMin > 0 ? `+${diffMin}` : diffMin} min
@@ -417,22 +422,22 @@ export default function DashboardPage() {
 
 function KpiCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint: string }) {
     return (
-        <div className="rounded-lg bg-slate-800/60 border border-slate-700/40 p-4 flex flex-col gap-1">
+        <div className="rounded-lg bg-secondary/50 border border-border p-4 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
                 {icon}
-                <span className="text-xs text-slate-400">{label}</span>
+                <span className="text-xs text-muted-foreground">{label}</span>
             </div>
-            <span className="text-2xl font-bold text-slate-100">{value}</span>
-            <span className="text-xs text-slate-500">{hint}</span>
+            <span className="text-2xl font-bold text-foreground">{value}</span>
+            <span className="text-xs text-muted-foreground">{hint}</span>
         </div>
     );
 }
 
 function StatRow({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex items-center justify-between rounded-lg bg-slate-800/40 border border-slate-700/40 px-4 py-2.5">
-            <span className="text-sm text-slate-400">{label}</span>
-            <span className="text-sm font-semibold text-slate-100 font-mono">{value}</span>
+        <div className="flex items-center justify-between rounded-lg bg-secondary/40 border border-border px-4 py-2.5">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="text-sm font-semibold text-foreground font-mono">{value}</span>
         </div>
     );
 }

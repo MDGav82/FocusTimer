@@ -73,25 +73,25 @@ export function AuthPage() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-      {/* Carte d'authentification blanche */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6 relative">
+    <div className="w-full max-w-md mx-auto space-y-8 pt-8 pb-4">
+      {/* Carte d'authentification */}
+      <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-[0_10px_40px_rgb(0_0_0/0.08)] ring-1 ring-border space-y-6 relative">
 
         <div className="text-center space-y-2 pt-2">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             {isLogin ? "Connexion" : "Créer un compte"}
           </h2>
         </div>
 
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
+          <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Adresse Email
             </label>
             <input
@@ -100,12 +100,12 @@ export function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="abc@de.fr"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm text-foreground placeholder-muted-foreground bg-background"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Mot de passe
             </label>
             <input
@@ -114,29 +114,29 @@ export function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm text-foreground placeholder-muted-foreground bg-background"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-2.5 px-4 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors mt-2 ${
+            className={`w-full py-2.5 px-4 text-sm font-semibold text-white bg-brand-blue hover:bg-brand-blue/90 rounded-lg transition-colors mt-2 ${
               isLoading ? "opacity-50 cursor-wait" : ""
             }`}
           >
-            {isLoading 
-              ? (isLogin ? "Connexion..." : "Création du compte...") 
+            {isLoading
+              ? (isLogin ? "Connexion..." : "Création du compte...")
               : (isLogin ? "Se connecter" : "S'inscrire")
             }
           </button>
         </form>
 
-        <hr className="border-gray-200" />
+        <hr className="border-border" />
 
         {/* Zone de bascule */}
         <div className="text-center text-sm pb-2">
-          <span className="text-gray-600">
+          <span className="text-muted-foreground">
             {isLogin ? "Nouveau sur l'application ?" : "Déjà un compte ?"}
           </span>{" "}
           <button
@@ -145,7 +145,7 @@ export function AuthPage() {
               setIsLogin(!isLogin);
               setError(null);
             }}
-            className="text-red-500 hover:text-red-600 font-medium underline underline-offset-4 ml-1"
+            className="text-brand-blue hover:text-brand-blue/80 font-medium underline underline-offset-4 ml-1"
           >
             {isLogin ? "Créer un compte" : "Se connecter"}
           </button>
