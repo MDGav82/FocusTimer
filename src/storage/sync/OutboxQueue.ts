@@ -48,6 +48,10 @@ export class OutboxQueue<T extends BaseEntity> {
         await idbDelete(this.db, OutboxStoreOptions.name, id)
     }
 
+    async clear() {
+        await idbTransaction(this.db, OutboxStoreOptions.name, 'readwrite', store => store.clear());
+    }
+
     async incrementRetry(id: string) {
         await idbUpdate<OutboxEntry<T>>(this.db, OutboxStoreOptions.name, id, (item) => {
             item.retries = (item.retries ?? 0) + 1;

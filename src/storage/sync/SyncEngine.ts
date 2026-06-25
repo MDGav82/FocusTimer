@@ -39,7 +39,10 @@ export class SyncEngine<T extends BaseEntity> {
       case 'CREATE': {
         const localEntity = await this.local.getById(entry.entityId);
         if (!localEntity) throw new Error(`Local entity ${entry.entityId} not found for CREATE`);
-        return this.api.create(entry.payload);
+        // Push the current local state, not the snapshot captured at enqueue time:
+        // after an anonymous session logs into an account, ownership (user_id) has
+        // been rewritten locally, and that's what must reach the server.
+        return this.api.create(localEntity);
       }
       case 'UPDATE':
         return this.api.update(entry.entityId, entry.payload);

@@ -28,7 +28,7 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
 
         if (await this.connectivity.canUseApi()) {
             try {
-                const api_cycle = this.api.createCycleForUser(userId, { ...cycle, _syncStatus: 'synced'});
+                const api_cycle = await this.api.createCycleForUser(userId, { ...cycle, _syncStatus: 'synced'});
                 await this.local.update(cycle.id, { _syncStatus: 'synced' });
                 cycle._syncStatus = 'synced';
                 return api_cycle;
@@ -47,10 +47,33 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
         return cycle;
     }
 
+    /**
+     * Re-owns this device's local cycles from `oldUserId` to `newUserId` and marks
+     * them pending so the outbox re-syncs them under the new account. Their periods
+     * are owned transitively through the cycle id (unchanged), so they don't need
+     * reassigning — they sync once the cycle exists under the new owner. No-op when
+     * the ids match (registration reuses the anonymous id).
+     */
+    async reassignLocalOwner(oldUserId: string, newUserId: string): Promise<void> {
+        if (!oldUserId || oldUserId === newUserId) return;
+        const cycles = await this.local.getCyclesForUser(oldUserId);
+        await Promise.all(
+            cycles.map(c => this.local.update(c.id, { user_id: newUserId, _syncStatus: 'pending' } as Partial<Cycle>))
+        );
+    }
+
     async getCyclesForUser(userId: string): Promise<Cycle[]> {
         if (await this.connectivity.canUseApi()) {
             try {
-                return await this.api.getCyclesForUser(userId);
+                const apiCycles = await this.api.getCyclesForUser(userId);
+                const localCycles = await this.local.getCyclesForUser(userId);
+                const merged = new Map(apiCycles.map(c => [c.id, c]));
+                for (const cycle of localCycles) {
+                    if (cycle._syncStatus === 'pending') {
+                        merged.set(cycle.id, cycle);
+                    }
+                }
+                return [...merged.values()];
             } catch {
                 // Fallthrough to local storage
                 console.error("Failed to fetch from API");

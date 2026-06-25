@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { UserRepository } from "@/storage/repositories";
+import { UserRepository, TaskRepository, CycleRepository } from "@/storage/repositories";
 import { apiFetch, parseEntity } from "@/storage/apiFetch.ts";
 import { UserSchema } from "@/model/schemas.ts";
 import type { User } from "@/model/User.ts";
 import { LogOut, User as UserIcon } from "lucide-react";
 import {syncEngine} from "@/storage/sync";
+import {ConnectivityService} from "@/storage/ConnectivityService.ts";
 
 export default function AuthPage() {
-  const navigate = useNavigate();
-  
   // false = Inscription, true = Connexion
   const [isLogin, setIsLogin] = useState<boolean>(false);
   
@@ -72,14 +70,19 @@ export default function AuthPage() {
         });
       }
 
-      await syncEngine.processQueue()
+      ConnectivityService.invalidateCache();
+
       const user = parseEntity(UserSchema, data) as User;
       await UserRepository.updateSessionMeta({
         lastUserId: user.id,
       });
+      await TaskRepository.reassignLocalOwner(localUserId, user.id);
+      await CycleRepository.reassignLocalOwner(localUserId, user.id);
 
-      setCurrentUser(user);
-      navigate("/");
+      await syncEngine.processQueue();
+
+   
+      window.location.assign("/");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue lors de l'authentification.");
     } finally {
@@ -93,18 +96,20 @@ export default function AuthPage() {
     try {
       await apiFetch(`/api/auth/logout`, { method: "POST" });
       
-      // Optionnel : Tu peux nettoyer ou regénérer un id utilisateur anonyme local ici si nécessaire
-      setCurrentUser(null);
-      setEmail("");
-      setPassword("");
+      ConnectivityService.invalidateCache();
+
+   
+      await syncEngine.clearQueue();
+      await UserRepository.createLocalUser();
+
+    
+      window.location.assign("/");
     } catch (err: any) {
       setError(err.message || "Impossible de se déconnecter.");
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Spinner ou état de chargement léger pendant la vérification initiale du cookie
   if (isCheckingSession) {
     return (
       <div className="w-full max-w-md mx-auto pt-16 text-center text-sm text-muted-foreground">

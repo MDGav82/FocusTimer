@@ -9,9 +9,9 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { PeriodType, type Period } from "@/model/Period";
+import { PeriodType, type Period, defaultPeriod } from "@/model/Period";
 import { type Task, TaskStatus } from "@/model/Task";
-import type { Cycle as CycleModel } from "@/model/Cycle";
+import { type Cycle as CycleModel, defaultCycle } from "@/model/Cycle";
 import type { User } from "@/model/User";
 import { CycleRepository, PeriodRepository, TaskRepository, UserRepository } from "@/storage/repositories";
 
@@ -87,15 +87,32 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       ]);
       if (cancelled) return;
       setTasks(userTasks);
-      setCycles(userCycles);
 
-     
+      let cycles = userCycles;
+      if (cycles.length === 0) {
+        const cycle = await CycleRepository.createCycleForUser(u.id, defaultCycle);
+        await Promise.all(
+          defaultPeriod.map((period) => PeriodRepository.createPeriodForCycle(cycle.id, period))
+        );
+        if (cancelled) return;
+        cycles = [cycle];
+      }
+      setCycles(cycles);
+
+
       const resolvedCycle =
-        userCycles.find((c) => c.id === lastSessionMeta?.selectedCycleId) ?? userCycles[0];
+        cycles.find((c) => c.id === lastSessionMeta?.selectedCycleId) ?? cycles[0];
       setCurrentCycle(resolvedCycle ?? null);
 
       if (resolvedCycle) {
-        const ps = await PeriodRepository.getPeriodsForCycle(resolvedCycle.id);
+        let ps = await PeriodRepository.getPeriodsForCycle(resolvedCycle.id);
+       
+        if (ps.length === 0) {
+          await Promise.all(
+            defaultPeriod.map((period) => PeriodRepository.createPeriodForCycle(resolvedCycle.id, period))
+          );
+          ps = await PeriodRepository.getPeriodsForCycle(resolvedCycle.id);
+        }
         if (cancelled) return;
         setPeriodsRaw(ps);
       }

@@ -15,8 +15,11 @@ import {IdbPeriodRepository} from "@/storage/repositories/period/IdbPeriodReposi
 
 export class MasterSyncEngine {
     private declare childEngines: SyncEngine<BaseEntity>[]
+    private declare outbox: OutboxQueue<BaseEntity>
 
     constructor(db: IDBDatabase) {
+        // Every entity shares the single 'outbox' store, so one queue clears them all.
+        this.outbox = new OutboxQueue(db);
         const RecentFirstConflitResolver = new ConflictResolver();
         this.childEngines = [
             new SyncEngine<Task>(
@@ -44,5 +47,9 @@ export class MasterSyncEngine {
         for (const engine of this.childEngines) {
             await engine.processQueue();
         }
+    }
+
+    async clearQueue() {
+        await this.outbox.clear();
     }
 }

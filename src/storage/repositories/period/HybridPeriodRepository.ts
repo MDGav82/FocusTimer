@@ -28,7 +28,7 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
 
         if (await this.connectivity.canUseApi()) {
             try {
-                const api_period = this.api.createPeriodForCycle(cycleId, { ...period, _syncStatus: 'synced' });
+                const api_period = await this.api.createPeriodForCycle(cycleId, { ...period, _syncStatus: 'synced' });
                 await this.local.update(period.id, { _syncStatus: 'synced' });
                 period._syncStatus = 'synced';
                 return api_period;
@@ -50,7 +50,17 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
     async getPeriodsForCycle(cycleId: string): Promise<Period[]> {
         if (await this.connectivity.canUseApi()) {
             try {
-                return this.api.getPeriodsForCycle(cycleId);
+                const apiPeriods = await this.api.getPeriodsForCycle(cycleId);
+    
+                const localPeriods = await this.local.getPeriodsForCycle(cycleId);
+                const merged = new Map(apiPeriods.map(p => [p.id, p]));
+                for (const period of localPeriods) {
+                    if (period._syncStatus === 'pending') {
+                        merged.set(period.id, period);
+                    }
+                }
+
+                return [...merged.values()].sort((a, b) => a.index - b.index);
             } catch {
                 // Fallthrough to local storage
                 console.error("Failed to fetch from API");
