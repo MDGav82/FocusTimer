@@ -1,11 +1,13 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { log } from "../logger";
 
 export const historyRoutes = new Elysia()
   .use(requireAuth)
 
-  .get("/api/users/:id/history", async ({ params: { id }, set }) => {
+  .get("/api/users/:id/history", async ({ params: { id }, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     try {
       return await db`
         SELECT
@@ -20,13 +22,15 @@ export const historyRoutes = new Elysia()
         WHERE h.user_id = ${id}
         ORDER BY h.start_date DESC
       `;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
   })
 
-  .post("/api/users/:id/history", async ({ params: { id }, body, set }) => {
+  .post("/api/users/:id/history", async ({ params: { id }, body, user, set }) => {
+    if (user!.id !== id) { set.status = 403; return { error: "Forbidden" }; }
     const { type_periode_id, cycle_id, task_id, time_spent } = body as any;
     if (!type_periode_id || !cycle_id) {
       set.status = 400;
@@ -43,13 +47,14 @@ export const historyRoutes = new Elysia()
       `;
       set.status = 201;
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
   })
 
-  .get("/api/history/:id", async ({ params: { id }, set }) => {
+  .get("/api/history/:id", async ({ params: { id }, user, set }) => {
     try {
       const [entry] = await db`
         SELECT
@@ -61,17 +66,18 @@ export const historyRoutes = new Elysia()
         JOIN type_periode tp ON tp.id = h.type_periode_id
         JOIN cycle c         ON c.id  = h.cycle_id
         LEFT JOIN task t     ON t.id  = h.task_id
-        WHERE h.id = ${id}
+        WHERE h.id = ${id} AND h.user_id = ${user!.id}
       `;
       if (!entry) { set.status = 404; return { error: "History entry not found" }; }
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
   })
 
-  .put("/api/history/:id", async ({ params: { id }, body, set }) => {
+  .put("/api/history/:id", async ({ params: { id }, body, user, set }) => {
     const { type_periode_id, cycle_id, task_id, time_spent } = body as any;
     try {
       const [entry] = await db`
@@ -81,23 +87,25 @@ export const historyRoutes = new Elysia()
           cycle_id        = COALESCE(${cycle_id ?? null}, cycle_id),
           task_id         = COALESCE(${task_id ?? null}, task_id),
           time_spent      = COALESCE(${time_spent ?? null}, time_spent)
-        WHERE id = ${id}
+        WHERE id = ${id} AND user_id = ${user!.id}
         RETURNING *
       `;
       if (!entry) { set.status = 404; return { error: "History entry not found" }; }
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
   })
 
-  .delete("/api/history/:id", async ({ params: { id }, set }) => {
+  .delete("/api/history/:id", async ({ params: { id }, user, set }) => {
     try {
-      const [deleted] = await db`DELETE FROM history WHERE id = ${id} RETURNING id`;
+      const [deleted] = await db`DELETE FROM history WHERE id = ${id} AND user_id = ${user!.id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "History entry not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }

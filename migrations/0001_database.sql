@@ -1,3 +1,6 @@
+-- 0001_init: initial schema.
+-- Tables carry an updated_at BIGINT (epoch ms, matching JS Date.now()) used by
+-- the offline-sync layer for last-write-wins conflict resolution.
 
 CREATE TABLE status (
   id   SERIAL PRIMARY KEY,
@@ -9,8 +12,6 @@ CREATE TABLE type_periode (
   name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- updated_at stores epoch milliseconds (matches the frontend's Date.now()) and
--- drives the last-write-wins conflict resolution in the offline-first sync layer.
 CREATE TABLE parameters (
   id                  SERIAL PRIMARY KEY,
   auto_start_work     BOOLEAN NOT NULL DEFAULT false,
@@ -20,7 +21,6 @@ CREATE TABLE parameters (
   updated_at          BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
 
-
 CREATE TABLE users (
   id            UUID PRIMARY KEY,
   email         VARCHAR(255) NOT NULL UNIQUE,
@@ -28,7 +28,6 @@ CREATE TABLE users (
   parameters_id INTEGER NOT NULL REFERENCES parameters(id) ON DELETE CASCADE,
   updated_at    BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
-
 
 CREATE TABLE task (
   id             UUID PRIMARY KEY,
@@ -52,7 +51,6 @@ CREATE TABLE cycle (
   updated_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
 
-
 CREATE TABLE period (
   id              UUID PRIMARY KEY,
   cycle_id        UUID NOT NULL REFERENCES cycle(id) ON DELETE CASCADE,
@@ -72,5 +70,7 @@ CREATE TABLE history (
   time_spent      INTEGER NOT NULL DEFAULT 0
 );
 
-INSERT INTO status (name) VALUES ('pending'), ('progress'), ('finish');
-INSERT INTO type_periode (name) VALUES ('work'), ('break');
+INSERT INTO status (name) VALUES ('pending'), ('progress'), ('finish')
+  ON CONFLICT (name) DO NOTHING;
+INSERT INTO type_periode (name) VALUES ('work'), ('break')
+  ON CONFLICT (name) DO NOTHING;

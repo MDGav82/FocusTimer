@@ -1,21 +1,25 @@
-import {useEffect, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
-import type {Cycle as CycleModel} from "@/model/Cycle";
-import {type Period, PeriodType} from "@/model/Period";
-import {PeriodRepository} from "@/storage/repositories";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import type { Cycle as CycleModel } from "@/model/Cycle";
+import { type Period, PeriodType } from "@/model/Period";
+import { PeriodRepository } from "@/storage/repositories";
 import { PeriodEditor } from "@/app/cycle/PeriodEditor";
+import { Timer as TimerIcon, Pause, Plus, Copy, Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CycleProps {
   cycles: CycleModel[];
   currentCycle: CycleModel | null;
+  /** Periods of the active cycle, in order — drives the inline timeline. */
+  activePeriods: Period[];
   currentPeriodIndex: number;
   onDeleteCycle?: (id: string) => void;
   onUpdateCycle?: (id: string, updatedPeriods: Period[], newName?: string) => void;
   onDuplicateCycle?: (id: string) => void;
   onCreateCycle?: () => void;
   onSelectCycle?: (id: string) => void;
-  onSelectPeriodIndex?: (index: number) => void; // Nouvelle prop ajoutée ici
+  onSelectPeriodIndex?: (index: number) => void;
 }
 
 const PERIOD_LABELS: Record<PeriodType, string> = {
@@ -23,14 +27,57 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   [PeriodType.REST]: "Pause",
 };
 
+/** Whole seconds → MM:SS, matching the big timer display. */
+function formatClock(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds ?? 0));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+/** A single pill in the cycle timeline (work = stopwatch, break = pause). */
+function PeriodChip({
+  period,
+  active,
+  onClick,
+}: {
+  period: Period;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const isWork = period.typePeriode === PeriodType.WORK;
+  const Icon = isWork ? TimerIcon : Pause;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={PERIOD_LABELS[period.typePeriode]}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-lg font-semibold font-display tracking-tight transition-all active:scale-95",
+        active
+          ? isWork
+            ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/30"
+            : "bg-brand-blue text-white shadow-lg shadow-brand-blue/30"
+          : "bg-card text-foreground ring-1 ring-border shadow-[0_6px_20px_rgb(0_0_0/0.06)] hover:shadow-[0_8px_26px_rgb(0_0_0/0.12)]"
+      )}
+    >
+      <Icon className="size-5" {...(!isWork ? { fill: "currentColor" } : {})} />
+      {formatClock(period.time)}
+    </button>
+  );
+}
+
 export function Cycle({
   cycles,
   currentCycle,
+  activePeriods,
+  currentPeriodIndex,
   onDeleteCycle,
   onUpdateCycle,
   onDuplicateCycle,
   onCreateCycle,
-  onSelectCycle// Récupération de la prop
+  onSelectCycle,
+  onSelectPeriodIndex,
 }: CycleProps) {
   const currentCycleName = currentCycle?.name ?? "Aucun cycle actif";
 
@@ -38,7 +85,7 @@ export function Cycle({
   const [localPeriods, setLocalPeriods] = useState<Period[]>([]);
   const [localCycleName, setLocalCycleName] = useState<string>("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  // Cache des périodes par cycle, car CycleModel ne contient pas les périodes
+  // Cache des périodes par cycle
   const [periodsByCycle, setPeriodsByCycle] = useState<Record<string, Period[]>>({});
 
   // Charger les périodes pour tous les cycles fournis
@@ -52,22 +99,32 @@ export function Cycle({
       try {
         const entries = await Promise.all(
           cycles.map(async (c) => {
+            if (c.id === editingCycleId) {
+              return [c.id, null] as const;
+            }
             const periods = await PeriodRepository.getPeriodsForCycle(c.id);
             return [c.id, periods] as const;
           })
         );
         if (!active) return;
-        const map: Record<string, Period[]> = {};
-        for (const [id, ps] of entries) map[id] = ps;
-        setPeriodsByCycle(map);
+        
+        setPeriodsByCycle((prev) => {
+          const map: Record<string, Period[]> = { ...prev };
+          for (const [id, ps] of entries) {
+            if (ps !== null) {
+              map[id] = ps;
+            }
+          }
+          return map;
+        });
       } catch {
-        // en cas d'échec, ne bloque pas l'UI; l'édition chargera à la demande
+        // Ignorer l'échec pour ne pas bloquer l'UI
       }
     })();
     return () => {
       active = false;
     };
-  }, [cycles]);
+  }, [cycles, editingCycleId]);
 
   const handleStartEdit = (cycle: CycleModel) => {
     if (editingCycleId === cycle.id) {
@@ -80,7 +137,6 @@ export function Cycle({
       if (cached) {
         setLocalPeriods([...cached]);
       } else {
-        // Charger à la demande si non présent dans le cache
         (async () => {
           const ps = await PeriodRepository.getPeriodsForCycle(cycle.id);
           setLocalPeriods([...ps]);
@@ -101,24 +157,36 @@ export function Cycle({
   const handleUpdatePeriodType = (idx: number, type: PeriodType) => {
     const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, typePeriode: type } : p));
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
   const handleUpdatePeriodTime = (idx: number, minutes: number) => {
     const updated = localPeriods.map((p: Period, i: number): Period => (i === idx ? { ...p, time: Math.max(0, minutes) * 60 } : p));
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
   const handleDeletePeriod = (idx: number) => {
     const updated = localPeriods.filter((_, i) => i !== idx);
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
@@ -129,10 +197,10 @@ export function Cycle({
       index: localPeriods.length,
       typePeriode: PeriodType.WORK,
       time: 25 * 60,
-    })
+    });
     const updated = [...localPeriods, newPeriod];
     setLocalPeriods(updated);
-    // tenir à jour le cache pour l'affichage de la liste/timeline
+    
     setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
     if (onUpdateCycle) {
       onUpdateCycle(editingCycleId, updated, localCycleName);
@@ -156,8 +224,12 @@ export function Cycle({
 
     setDraggedIndex(index);
     setLocalPeriods(updated);
-    if (onUpdateCycle && editingCycleId !== null) {
-      onUpdateCycle(editingCycleId, updated, localCycleName);
+    
+    if (editingCycleId !== null) {
+      setPeriodsByCycle((m) => ({ ...m, [editingCycleId]: updated }));
+      if (onUpdateCycle) {
+        onUpdateCycle(editingCycleId, updated, localCycleName);
+      }
     }
   };
 
@@ -166,40 +238,34 @@ export function Cycle({
   };
 
   return (
-    <div className="bg-slate-800/40 border border-amber-500/20 p-5 rounded-2xl shadow-xl">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
-        <div>
-          <span className="text-[10px] font-bold tracking-widest uppercase text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
-            Cycle Actif
-          </span>
-          <h3 className="text-lg font-bold text-slate-100 mt-1">{currentCycleName}</h3>
-        </div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-end gap-3">
+        <span className="text-lg font-semibold text-foreground">{currentCycleName}</span>
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/10 active:scale-95">
-              Sélectionner un cycle
+            <Button className="bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 rounded-full px-4 h-9 text-sm font-semibold shadow-sm active:scale-95">
+              Changer le cycle
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-xl md:max-w-2xl lg:max-w-3xl">
-            <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-700/50 pb-4 pr-6">
+          <DialogContent className="bg-card text-card-foreground border-border max-w-xl md:max-w-2xl lg:max-w-3xl">
+            <DialogHeader className="flex flex-row items-center justify-between border-b border-border pb-4 pr-6">
               <div className="space-y-1">
-                <DialogTitle className="text-base font-bold text-slate-100">Vos cycles</DialogTitle>
-                <DialogDescription className="text-xs text-slate-400">
+                <DialogTitle className="text-base font-bold text-foreground">Vos cycles</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
                   Choisissez le cycle de travail que vous souhaitez utiliser.
                 </DialogDescription>
               </div>
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => onCreateCycle?.()}
-                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20 font-semibold transition active:scale-95"
+                className="bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 font-semibold gap-1.5 active:scale-95"
               >
-                Ajouter un cycle
+                <Plus className="size-3.5" /> Ajouter un cycle
               </Button>
             </DialogHeader>
 
-            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
+            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               {cycles && cycles.length > 0 ? (
                 cycles.map((cycle) => {
                   const isActive = cycle.id === currentCycle?.id;
@@ -209,19 +275,20 @@ export function Cycle({
                     <div key={cycle.id} className="flex flex-col gap-2">
                       <div
                         onClick={() => !isEditing && onSelectCycle?.(cycle.id)}
-                        className={`bg-slate-900/40 border p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${
+                        className={cn(
+                          "border p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition",
                           isEditing
-                            ? "border-amber-500/40 bg-slate-900/60"
+                            ? "border-brand-yellow/60 bg-brand-yellow/5"
                             : isActive
-                            ? "border-amber-500/60 bg-slate-900/30 ring-1 ring-amber-500/20"
-                            : "border-slate-700/50 hover:border-slate-600 cursor-pointer"
-                        }`}
+                            ? "border-brand-orange/50 bg-brand-orange/5 ring-1 ring-brand-orange/20 animate-none cursor-default"
+                            : "border-border bg-secondary/40 hover:border-muted-foreground/40 cursor-pointer"
+                        )}
                       >
-                        <div className="flex-1 space-y-5 self-stretch flex flex-col justify-between">
+                        <div className="flex-1 space-y-3 self-stretch flex flex-col justify-between">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-slate-200 align-top">{cycle.name}</h4>
+                            <h4 className="text-sm font-bold text-foreground">{cycle.name}</h4>
                             {isActive && (
-                              <span className="text-[9px] font-bold tracking-wider uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                              <span className="text-[9px] font-bold tracking-wider uppercase text-brand-orange bg-brand-orange/10 px-1.5 py-0.5 rounded border border-brand-orange/20">
                                 Actif
                               </span>
                             )}
@@ -236,14 +303,17 @@ export function Cycle({
                               return (
                                 <div key={p.id ?? idx} className="flex items-center gap-2">
                                   <span
-                                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium bg-slate-800/80 transition-all ${
-                                      isWork ? "text-rose-400/90 border-rose-500/20" : "text-cyan-400/90 border-cyan-500/20"
-                                    }`}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded-lg border text-[11px] font-medium",
+                                      isWork
+                                        ? "text-brand-orange border-brand-orange/30 bg-brand-orange/5"
+                                        : "text-brand-blue border-brand-blue/30 bg-brand-blue/5"
+                                    )}
                                   >
                                     {displayName} : {displayMinutes}m
                                   </span>
                                   {idx < arr.length - 1 && (
-                                    <span className="text-slate-600 text-[10px]">➔</span>
+                                    <span className="text-muted-foreground text-[10px]">➔</span>
                                   )}
                                 </div>
                               );
@@ -252,38 +322,44 @@ export function Cycle({
                         </div>
 
                         <div
-                          className="flex flex-col gap-2 w-full sm:w-36 shrink-0 sm:self-center"
+                          className="flex flex-col gap-2 w-full sm:w-40 shrink-0 sm:self-center"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onDuplicateCycle?.(cycle.id)}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 text-xs h-8 w-full transition active:scale-95"
+                            className="text-xs h-8 w-full gap-1.5 active:scale-95"
                           >
-                            Dupliquer le cycle
+                            <Copy className="size-3.5" /> Dupliquer
                           </Button>
 
                           <Button
-                            variant="outline"
+                            variant={isEditing ? "default" : "outline"}
                             size="sm"
+                            disabled={!isActive}
+                            title={!isActive ? "Sélectionnez ce cycle pour pouvoir le modifier" : undefined}
                             onClick={() => handleStartEdit(cycle)}
-                            className={`text-xs h-8 w-full transition ${
-                              isEditing
-                                ? "bg-amber-500 text-slate-950 border-amber-500 font-bold hover:bg-amber-400"
-                                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
-                            }`}
+                            className={cn(
+                              "text-xs h-8 w-full gap-1.5 transition-all",
+                              isEditing 
+                                ? "bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 font-semibold active:scale-95" 
+                                : isActive 
+                                ? "active:scale-95" 
+                                : "opacity-40 cursor-not-allowed hover:bg-transparent text-muted-foreground"
+                            )}
                           >
-                            {isEditing ? "Fermer l'édition" : "Modifier le cycle"}
+                            <Pencil className="size-3.5" />
+                            {isEditing ? "Fermer" : "Modifier"}
                           </Button>
 
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
                             onClick={() => onDeleteCycle?.(cycle.id)}
-                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs h-8 font-medium w-full justify-center shadow-sm"
+                            className="text-xs h-8 w-full gap-1.5 active:scale-95"
                           >
-                            Supprimer le cycle
+                            <Trash2 className="size-3.5" /> Supprimer
                           </Button>
                         </div>
                       </div>
@@ -303,22 +379,21 @@ export function Cycle({
                           onDragEnd={handleDragEnd}
                         />
                       )}
-
                     </div>
                   );
                 })
               ) : (
-                <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-700 rounded-2xl bg-slate-900/20 my-2">
-                  <div className="text-3xl mb-2">⏱️</div>
-                  <h4 className="text-sm font-bold text-slate-300">Aucun cycle disponible</h4>
-                  <p className="text-xs text-slate-500 max-w-xs mt-1 mb-4">
+                <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-border rounded-2xl bg-secondary/40 my-2">
+                  <TimerIcon className="size-8 text-brand-orange mb-2" />
+                  <h4 className="text-sm font-bold text-foreground">Aucun cycle disponible</h4>
+                  <p className="text-xs text-muted-foreground max-w-xs mt-1 mb-4">
                     Vous avez supprimé tous vos profils de timers. Créez-en un nouveau pour recommencer.
                   </p>
                   <Button
                     onClick={() => onCreateCycle?.()}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition shadow-md shadow-amber-500/5"
+                    className="bg-brand-yellow text-brand-indigo hover:bg-brand-yellow/90 text-xs font-bold gap-1.5 active:scale-95"
                   >
-                    + Créer un cycle de base
+                    <Plus className="size-3.5" /> Créer un cycle de base
                   </Button>
                 </div>
               )}
@@ -326,6 +401,19 @@ export function Cycle({
           </DialogContent>
         </Dialog>
       </div>
+
+      {activePeriods.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {activePeriods.map((period, idx) => (
+            <PeriodChip
+              key={period.id ?? idx}
+              period={period}
+              active={idx === currentPeriodIndex}
+              onClick={() => onSelectPeriodIndex?.(idx)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

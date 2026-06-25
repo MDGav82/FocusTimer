@@ -4,14 +4,15 @@ import {ApiCycleRepository} from "@/storage/repositories/cycle/ApiCycleRepositor
 import {OutboxQueue} from "@/storage/sync/OutboxQueue.ts";
 import {IdbCycleRepository} from "@/storage/repositories/cycle/IdbCycleRepository.ts";
 import type {PureEntity} from "@/model/BaseEntity.ts";
+import type {ICycleRepository} from "@/storage/repositories/cycle/ICycleRepository.ts";
 
-export class HybridCycleRepository extends GenericHybridRepository<Cycle> implements ApiCycleRepository {
+export class HybridCycleRepository extends GenericHybridRepository<Cycle> implements ICycleRepository {
     protected declare api: ApiCycleRepository;
     protected declare local: IdbCycleRepository;
 
     constructor(db: IDBDatabase) {
         const api = new ApiCycleRepository();
-        const local = new IdbCycleRepository(db, 'cycle');
+        const local = new IdbCycleRepository(db);
         const outbox = new OutboxQueue<Cycle>(db);
         super(api, local, outbox);
     }
@@ -39,9 +40,9 @@ export class HybridCycleRepository extends GenericHybridRepository<Cycle> implem
 
         await this.outbox.enqueue({
             op: 'CREATE',
-            entity: 'cycle',
+            entityType: 'cycle',
             entityId: cycle.id,
-            payload: pureCycle,
+            payload: cycle,
         })
         return cycle;
     }

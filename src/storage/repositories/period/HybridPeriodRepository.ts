@@ -12,7 +12,7 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
 
     constructor(db: IDBDatabase) {
         const api = new ApiPeriodRepository();
-        const local = new IdbPeriodRepository(db, 'period');
+        const local = new IdbPeriodRepository(db);
         const outbox = new OutboxQueue<Period>(db);
         super(api, local, outbox);
     }
@@ -40,9 +40,9 @@ export class HybridPeriodRepository extends GenericHybridRepository<Period> impl
 
         await this.outbox.enqueue({
             op: 'CREATE',
-            entity: 'period',
+            entityType: 'period',
             entityId: period.id,
-            payload: purePeriod,
+            payload: period,
         })
         return period;
     }

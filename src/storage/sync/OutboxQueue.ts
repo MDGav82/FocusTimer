@@ -1,10 +1,10 @@
-import {idbDelete, idbTransaction} from "@/storage/indexDb.ts";
+import {idbDelete, idbTransaction, idbUpdate} from "@/storage/indexDb.ts";
 import type {BaseEntity} from "@/model/BaseEntity.ts";
 import type {StoreOptions} from "@/storage/indexDb.ts";
 
 type BaseOutBoxEntry = {
     id: string;
-    entity: string;
+    entityType: string;
     entityId: string;
     createdAt: number;
     retries: number;
@@ -17,11 +17,13 @@ export type OutboxEntry<T> = CreateOutBoxEntry<T> | UpdateOutBoxEntry<T> | Delet
 export const OutboxStoreOptions: StoreOptions = {
     name: 'outbox',
     keyPath: 'id',
+    indexes: [
+        { name: 'by_type', keyPath: 'entityType' }
+    ]
 }
 
 export class OutboxQueue<T extends BaseEntity> {
-    constructor(private db: IDBDatabase) {
-    }
+    constructor(private db: IDBDatabase) {}
 
     async enqueue(entry: Omit<OutboxEntry<T>, 'id' | 'createdAt' | 'retries'>) {
         const newEntry = {
@@ -30,19 +32,26 @@ export class OutboxQueue<T extends BaseEntity> {
             createdAt: Date.now(),
             retries: 0,
         } as OutboxEntry<T>;
-        await idbTransaction(this.db, 'outbox', 'readwrite', store => store.add(newEntry));
+        await idbTransaction(this.db, OutboxStoreOptions.name, 'readwrite', store => store.add(newEntry));
     }
 
-    async getPending(): Promise<OutboxEntry<T>[]> {
+    async getPending(type: string): Promise<OutboxEntry<T>[]> {
         return await idbTransaction(
             this.db,
-            'outbox',
+            OutboxStoreOptions.name,
             'readonly',
-            store => store.getAll()
+            store => store.index('by_type').getAll(type)
         ) as Promise<OutboxEntry<T>[]>;
     }
 
     async remove(id: string) {
-        await idbDelete(this.db, 'outbox', id)
+        await idbDelete(this.db, OutboxStoreOptions.name, id)
+    }
+
+    async incrementRetry(id: string) {
+        await idbUpdate<OutboxEntry<T>>(this.db, OutboxStoreOptions.name, id, (item) => {
+            item.retries = (item.retries ?? 0) + 1;
+            return item;
+        })
     }
 }
