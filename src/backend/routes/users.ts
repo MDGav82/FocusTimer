@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
-import { UserSchema, UserUpdateSchema } from "@/model/schemas.ts";
+import { UserSchema, UserUpdateSchema, ParametersUpdateSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
 
 export function toUserJson(row: any) {
@@ -102,7 +102,7 @@ export const userRoutes = new Elysia()
 
   .put("/api/users/:id/parameters", async ({ params: { id }, body, set }) => {
     const { autoStartWork, autoStartRest, autoRestartCycle, notificationsOn } =
-      body as any;
+      body;
     try {
       const [updated] = await db`
         UPDATE parameters p
@@ -122,4 +122,4 @@ export const userRoutes = new Elysia()
       set.status = 500;
       return { error: "Internal server error" };
     }
-  });
+  }, {body:ParametersUpdateSchema});
