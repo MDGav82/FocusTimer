@@ -1,26 +1,39 @@
-import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
+import type {BaseEntity, PureEntity} from "@/model/BaseEntity.ts";
+import type {StoreOptions} from "@/storage/indexDb.ts";
 
-export enum PType {
-  WORK,
-  BREAK,
+export enum PeriodType {
+    WORK = 0,
+    REST = 1,
 }
-export type PeriodType = {
-  id: number;
-  time: number;
-  type: PType;
-  index: number;
-};
-export class Period implements StorableInstance {
-  static readonly storeName: string = "period";
-  static readonly keyPath: string = "id";
-  static readonly indexes?: IndexDefinition[] = [
-    { name: "by_id", keyPath: "id", options: { unique: true } },
-  ];
 
-  constructor(
-    public id: number,
-    public time: number,
-    public index: number,
-    public typePeriode: PType,
-  ) {}
+export const defaultPeriod: PureEntity<Period>[] = [
+    {
+        time: 25 * 60,
+        typePeriode: PeriodType.WORK,
+        index: 1,
+        cycle_id: ""
+    },
+    {
+        time: 5 * 60,
+        typePeriode: PeriodType.REST,
+        index: 2,
+        cycle_id: ""
+    }
+]
+
+export const PeriodStoreOptions: StoreOptions = {
+    name: 'period',
+    keyPath: 'id',
+    indexes: [
+        { name: "by_id", keyPath: "id", options: { unique: true } },
+        { name: "by_cycle_id", keyPath: "cycle_id" }
+    ]
+}
+
+export interface Period extends BaseEntity {
+     time: number;
+     index: number;
+     typePeriode: PeriodType;
+
+     cycle_id: string;
 }

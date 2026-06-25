@@ -1,76 +1,112 @@
-import { useState } from "react";
-import { Timer } from "./Timer";
-import { Cycle } from "../cycle/Cycle";
-import { Tasks } from "./Tasks";
-import type { Period } from "@/model/Period";
-import type { PType } from "@/model/Period";
-import { Cycle as CycleModel } from "@/model/Cycle";
-import { Task, Status } from "@/model/Task";
-import { type CycleType } from "@/model/Cycle";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {Timer} from "./Timer";
+import {Cycle} from "../cycle/Cycle";
+import {Tasks} from "./Tasks";
+import {defaultPeriod, type Period, PeriodType} from "@/model/Period";
+import {type Task, TaskStatus} from "@/model/Task";
+import {type Cycle as CycleModel, defaultCycle} from "@/model/Cycle";
+import type {User} from "@/model/User.ts";
+import {CycleRepository, PeriodRepository, TaskRepository, UserRepository} from "@/storage/repositories";
+
 
 export function LandingPage() {
-  // Période de secours globale au cas où un cycle se retrouverait sans période
-  const defaultFallbackPeriod: Period = { id: 999, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 };
+  const [isLoading, setLoading] = useState<boolean>(true)
+  const [user, setUser] = useState<User | null>(null)
 
-  const [periods, setPeriods] = useState<Period[]>([
-    { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-    { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-    { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-    { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
-  ]);
-
+  const [cycles, setCycles] = useState<CycleModel[]>([]);
+  const [currentCycle, setCurrentCycle] = useState<CycleModel | null>(null)
+  const [activePeriods, setActivePeriods] = useState<Period[]>([]);
   const [currentPeriodIndex, setCurrentPeriodIndex] = useState<number>(0);
-  
-  // Sécurisation : Si la période à l'index actuel n'existe pas, on prend la première du tableau. Si le tableau est vide, on prend la période de secours.
-  const currentPeriod: Period = periods[currentPeriodIndex] ?? periods[0] ?? defaultFallbackPeriod;
 
-  // Correction de l'état initial : On donne des périodes de base à tous les cycles pour éviter l'état vide au démarrage
-  const [cycles, setCycles] = useState<CycleType[]>([
-    {
-      id: 1,
-      name: "Cycle par Défaut",
-      periods: [
-        { id: 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-        { id: 3, index: 2, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: 4, index: 3, typePeriode: "break" as unknown as PType, time: 15 * 60 },
-      ],
-    }, 
-    {
-      id: 2,
-      name: "Cycle 2",
-      periods: [
-        { id: 201, index: 0, typePeriode: "work" as unknown as PType, time: 50 * 60 },
-        { id: 202, index: 1, typePeriode: "break" as unknown as PType, time: 10 * 60 },
-      ],
-    }, 
-    {
-      id: 3,
-      name: "Cycle 3",
-      periods: [
-        { id: 301, index: 0, typePeriode: "work" as unknown as PType, time: 90 * 60 },
-        { id: 302, index: 1, typePeriode: "break" as unknown as PType, time: 20 * 60 },
-      ],
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      let user: User;
+      const lastSessionMeta = await UserRepository.getLastSessionMeta();
+
+      const existingUser = lastSessionMeta
+          ? await UserRepository.getById(lastSessionMeta.lastUserId)
+          : undefined;
+      // Create a fresh local session if there is no meta or the referenced user is gone.
+      user = existingUser ?? await UserRepository.createLocalUser();
+      setUser(user);
+
+      const taskPromise = TaskRepository.getTasksForUser(user.id)
+          .then((tasks) => setTasks(tasks));
+
+      const currentCycles = await CycleRepository.getCyclesForUser(user.id);
+      setCycles(currentCycles);
+
+      // Prefer the cycle saved in the session, falling back to the first available one.
+      const resolvedCycle =
+          currentCycles.find(c => c.id === lastSessionMeta?.selectedCycleId) ?? currentCycles[0];
+      setCurrentCycle(resolvedCycle ?? null);
+
+      const periodsPromise = resolvedCycle
+          ? PeriodRepository.getPeriodsForCycle(resolvedCycle.id).then(periods => setActivePeriods(periods))
+          : Promise.resolve();
+
+      await Promise.all([taskPromise, periodsPromise]);
     }
-  ]);
 
-  const currentCycleMock: CycleModel = {
-    id: cycles[0]?.id ?? 1,
-    name: cycles[0]?.name ?? "Cycle sans nom",
-    periods: cycles[0]?.periods ?? periods,
-    storeName: 'cycle',
-    keyPath: 'id'
-  } as unknown as CycleModel;
+    fetchData()
+        .catch((e) => console.error("Failed to initialize session", e))
+        .finally(() => setLoading(false));
+  }, [])
 
-  const [tasks, setTasks] = useState<Task[]>([
-    new Task(1, "Tâche par défaut uno", "Description 1", 1800, new Date(), new Date(), 1200, new Date(), Status.PROGRESS),
-    new Task(2, "Tâche par défaut secondo", "Description 2", 1200, new Date(), new Date(), 0, new Date(), Status.PENDING),
-    new Task(3, "Tâche par défaut tres", "Description 3", 1200, new Date(), new Date(), 1199, new Date(), Status.PENDING),
-  ]);
+  // Keep the latest tasks reachable from the periodic-flush interval without
+  // re-subscribing it on every tick.
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
 
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const persistTask = useCallback(async (id: string, patch: Partial<Task>) => {
+    try {
+      await TaskRepository.update(id, patch);
+    } catch (e) {
+      console.error("Failed to persist task", e);
+    }
+  }, []);
 
-  const activePeriods = cycles[0]?.periods ?? periods;
+  const refreshTasks = useCallback(async () => {
+    if (!user) return;
+    try {
+      setTasks(await TaskRepository.getTasksForUser(user.id));
+    } catch (e) {
+      console.error("Failed to refresh tasks", e);
+    }
+  }, [user]);
+
+  // Ticks accumulate timeSpent in local state for a smooth countdown; flush the
+  // selected task to storage every 10s and once more when it is deselected,
+  // instead of writing to the DB on every single tick.
+  const selectedTaskId = selectedTask?.id;
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    const flush = () => {
+      const t = tasksRef.current.find((t) => t.id === selectedTaskId);
+      if (t && t.timeSpent > 0) persistTask(t.id, { timeSpent: t.timeSpent, status: t.status });
+    };
+    const interval = setInterval(flush, 10000);
+    return () => {
+      clearInterval(interval);
+      flush();
+    };
+  }, [selectedTaskId, persistTask]);
+
+  if (isLoading) {
+    return (<div> Loadding ... </div>);
+  }
+
+  if (activePeriods.length === 0) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-10 text-center text-sm text-slate-400">
+        Impossible d'initialiser la session (aucun cycle/période). Réessaie après avoir vidé la base IndexedDB.
+      </div>
+    );
+  }
+
   const totalSessionTime = activePeriods.reduce((acc, p) => acc + (p.time ?? 0), 0);
   const getElapsedBeforeCurrent = (index: number) => {
     return activePeriods.slice(0, index).reduce((acc, p) => acc + (p.time ?? 0), 0);
@@ -86,146 +122,164 @@ export function LandingPage() {
     setCurrentPeriodIndex((prevIndex) => (prevIndex - 1 + activePeriods.length) % activePeriods.length);
   };
 
-  const handleDeleteCycle = (id: number) => {
-    setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
+  const handleDeleteCycle = async (id: string) => {
+    await PeriodRepository.getPeriodsForCycle(id)
+        .then(periods => Promise.all(periods.map(period => PeriodRepository.delete(period.id))));
+    const newCycles = await CycleRepository.delete(id)
+        .then(() => CycleRepository.getCyclesForUser(user?.id!));
+    setCycles(newCycles);
   };
 
-  const handleUpdateCycle = (id: number, updatedPeriods: Period[], newName?: string) => {
-    setCycles((prevCycles) =>
-      prevCycles.map((c) => 
-        c.id === id 
-          ? { ...c, periods: updatedPeriods, name: newName ?? c.name } 
-          : c
-      )
-    );
-    if (id === cycles[0]?.id) {
-      setPeriods(updatedPeriods);
-      if (currentPeriodIndex >= updatedPeriods.length) {
-        setCurrentPeriodIndex(0);
-      }
+  const handleUpdateCycle = async (id: string, updatedPeriods: Period[], newName?: string) => {
+    const cycleToUpdate = cycles.find((c) => c.id === id);
+    if (!cycleToUpdate) return;
+
+    if (newName) {
+      const updatedCycle = await CycleRepository.update(cycleToUpdate.id, { name: newName })
+      setCycles(prevCycles => prevCycles.map(cycle => cycle.id === updatedCycle.id ? updatedCycle : cycle))
+    }
+    if (id === currentCycle?.id!) {
+      setActivePeriods(updatedPeriods);
+      setCurrentPeriodIndex(0);
     }
   };
 
-  const handleDuplicateCycle = (id: number) => {
+  const handleDuplicateCycle = async (id: string) => {
     const cycleToDuplicate = cycles.find((c) => c.id === id);
     if (!cycleToDuplicate) return;
 
-    const newCycle: CycleType = {
-      id: Date.now(),
-      name: `${cycleToDuplicate.name} (Copie)`,
-      periods: cycleToDuplicate.periods.map((p, idx) => ({
-        ...p,
-        id: Date.now() + idx + Math.random(),
-      })),
-    };
+    const newCycle = await CycleRepository.createCycleForUser(user?.id!, {
+      ...cycleToDuplicate,
+      name: `${cycleToDuplicate.name} (Copie)`
+    })
+
+    const periodsToDuplicate = await PeriodRepository.getPeriodsForCycle(cycleToDuplicate.id);
+    await Promise.all([
+        periodsToDuplicate.map(perdiod => PeriodRepository.createPeriodForCycle(newCycle.id, perdiod))
+    ])
 
     setCycles((prevCycles) => [...prevCycles, newCycle]);
   };
 
-  const handleCreateCycle = () => {
-    const newCycle: CycleType = {
-      id: Date.now(),
-      name: `Cycle ${cycles.length + 1}`,
-      periods: [
-        { id: Date.now() + 1, index: 0, typePeriode: "work" as unknown as PType, time: 25 * 60 },
-        { id: Date.now() + 2, index: 1, typePeriode: "break" as unknown as PType, time: 5 * 60 },
-      ],
-    };
+  const handleCreateCycle = async () => {
+    const newCycle = await CycleRepository.createCycleForUser(user?.id!, defaultCycle);
+    await Promise.all(
+        defaultPeriod.map(period => PeriodRepository.createPeriodForCycle(newCycle.id, period))
+    );
     setCycles((prevCycles) => [...prevCycles, newCycle]);
   };
 
-  const handleSelectCycle = (id: number) => {
+  const handleSelectCycle = async (id: string) => {
     const targetCycle = cycles.find((c) => c.id === id);
     if (!targetCycle) return;
-    
-    const remainingCycles = cycles.filter((c) => c.id !== id);
-    const updatedCycles = [targetCycle, ...remainingCycles];
-    
-    setCycles(updatedCycles);
-    
-    // Si le cycle sélectionné possède des périodes, on les applique, sinon on met une période par défaut
-    const newPeriods = targetCycle.periods && targetCycle.periods.length > 0 
-      ? targetCycle.periods 
-      : [defaultFallbackPeriod];
 
-    setPeriods(newPeriods);
-    setCurrentPeriodIndex(0); 
+    setCurrentCycle(targetCycle);
+
+    const newPeriods = await PeriodRepository.getPeriodsForCycle(targetCycle.id)
+    setActivePeriods(newPeriods);
+    setCurrentPeriodIndex(0);
   };
 
   const handleTick = () => {
-    if (selectedTaskId !== null && currentPeriod && String(currentPeriod.typePeriode) === "work") {
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => {
-          if (task.id === selectedTaskId) {
-            const updatedTimeSpent = task.timeSpent + 1;
-            const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
-            return new Task(
-              task.id,
-              task.title,
-              task.description,
-              task.estimatedTime,
-              task.creationDate,
-              task.startDate,
-              updatedTimeSpent,
-              task.endDate,
-              isCompleted ? Status.FINISHED : Status.PROGRESS
-            );
-          }
-          return task;
-        })
-      );
+    const currentPeriod = activePeriods[currentPeriodIndex];
+    if (!selectedTask || !currentPeriod || currentPeriod.typePeriode !== PeriodType.WORK) return;
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => {
+        if (task.id !== selectedTask.id) return task;
+        const updatedTimeSpent = task.timeSpent + 1;
+        const isCompleted = updatedTimeSpent >= task.estimatedTime * 60;
+        // Persist immediately on the completion transition; ongoing progress is
+        // flushed by the periodic effect above.
+        if (isCompleted && task.status !== TaskStatus.FINISHED) {
+          persistTask(task.id, { timeSpent: updatedTimeSpent, status: TaskStatus.FINISHED });
+        }
+        return {
+          ...task,
+          timeSpent: updatedTimeSpent,
+          status: isCompleted ? TaskStatus.FINISHED : TaskStatus.PROGRESS,
+          updatedAt: Date.now(),
+        };
+      })
+    );
+  };
+
+  const handleAddTask = async (title: string, minutes: number) => {
+    if (!user) return;
+    const now = new Date();
+    try {
+      const created = await TaskRepository.createTaskForUser(user.id, {
+        title,
+        description: "",
+        estimatedTime: minutes,
+        creationDate: now,
+        startDate: now,
+        timeSpent: 0,
+        status: TaskStatus.PENDING,
+      });
+      setTasks((prev) => (prev.some((t) => t.id === created.id) ? prev : [...prev, created]));
+    } catch (e) {
+      // Local persistence runs first inside the repository, so the task is
+      // likely saved even if a later API/outbox step threw. Reconcile from
+      // storage so it appears without needing a page change.
+      console.error("Failed to create task", e);
+      await refreshTasks();
     }
   };
 
-  const handleAddTask = (title: string, hours: number) => {
-    const newTask = new Task(Date.now(), title, "", hours, new Date(), new Date(), 0, new Date(), Status.PENDING);
-    setTasks([...tasks, newTask]);
+  const handleEditTask = (id: string, updatedTitle: string, updatedMinutes: number) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, title: updatedTitle, estimatedTime: updatedMinutes, updatedAt: Date.now() }
+          : t
+      )
+    );
+    persistTask(id, { title: updatedTitle, estimatedTime: updatedMinutes });
   };
 
-  const handleEditTask = (id: number, updatedTitle: string, updatedHours: number) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === id 
-          ? new Task(t.id, updatedTitle, t.description, updatedHours, t.creationDate, t.startDate, t.timeSpent, t.endDate, t.status)
-          : t
+  const handleDeleteAll = async () => {
+    const toDelete = tasks;
+    setTasks([]);
+    setSelectedTask(null);
+    await Promise.all(
+      toDelete.map((t) =>
+        TaskRepository.delete(t.id).catch((e) => console.error("Failed to delete task", e))
       )
     );
   };
 
-  const handleDeleteAll = () => {
-    setTasks([]);
-    setSelectedTaskId(null);
-  };
-
-  const handleToggleComplete = (id: number) => {
+  const handleToggleComplete = (id: string) => {
+    let nextStatus: TaskStatus | null = null;
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === id) {
-          const isCurrentlyCompleted = task.status === Status.FINISHED;
-          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? Status.PROGRESS : Status.PENDING) : Status.FINISHED;
-          return new Task(task.id, task.title, task.description, task.estimatedTime, task.creationDate, task.startDate, task.timeSpent, task.endDate, newStatus);
+          const isCurrentlyCompleted = task.status === TaskStatus.FINISHED;
+          const newStatus = isCurrentlyCompleted ? (task.timeSpent > 0 ? TaskStatus.PROGRESS : TaskStatus.PENDING) : TaskStatus.FINISHED;
+          nextStatus = newStatus;
+          return { ...task, status: newStatus, updatedAt: Date.now() };
         }
         return task;
       })
     );
-    if (selectedTaskId === id) {
-      setSelectedTaskId(null);
+    if (nextStatus !== null) persistTask(id, { status: nextStatus });
+    if (selectedTask?.id === id) {
+      setSelectedTask(null);
     }
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 pt-4 pb-4">
-      <Timer 
-        currentPeriod={currentPeriod} 
-        onNext={nextPeriod} 
+      <Timer
+        currentPeriod={activePeriods[currentPeriodIndex]!}
+        onNext={nextPeriod}
         onPrevious={previousPeriod}
         totalSessionTime={totalSessionTime}
         elapsedBeforeCurrent={getElapsedBeforeCurrent(currentPeriodIndex)}
         onTick={handleTick}
       />
-      
-      <Cycle 
-        currentCycle={currentCycleMock}
+
+      <Cycle
+        currentCycle={currentCycle}
         currentPeriodIndex={currentPeriodIndex}
         cycles={cycles}
         onDeleteCycle={handleDeleteCycle}
@@ -235,11 +289,11 @@ export function LandingPage() {
         onSelectCycle={handleSelectCycle}
         onSelectPeriodIndex={setCurrentPeriodIndex}
       />
-      
-      <Tasks 
-        tasks={tasks} 
-        selectedTaskId={selectedTaskId}
-        onSelectTask={setSelectedTaskId}
+
+      <Tasks
+        tasks={tasks}
+        selectedTask={selectedTask}
+        onSelectTask={setSelectedTask}
         onAddTask={handleAddTask}
         onEditTask={handleEditTask}
         onDeleteAll={handleDeleteAll}

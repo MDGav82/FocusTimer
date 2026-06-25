@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Task, Status } from "@/model/Task";
+import { type Task, TaskStatus } from "@/model/Task";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,17 +12,17 @@ import {
 
 interface TasksProps {
   tasks: Task[];
-  selectedTaskId: number | null;
-  onSelectTask: (id: number | null) => void;
+  selectedTask: Task | null;
+  onSelectTask: (id: Task | null) => void;
   onAddTask: (title: string, minutes: number) => void;
-  onEditTask: (id: number, title: string, minutes: number) => void;
+  onEditTask: (id: string, title: string, minutes: number) => void;
   onDeleteAll: () => void;
-  onToggleComplete: (id: number) => void;
+  onToggleComplete: (id: string) => void;
 }
 
 export function Tasks({
   tasks,
-  selectedTaskId,
+  selectedTask,
   onSelectTask,
   onAddTask,
   onEditTask,
@@ -85,9 +85,9 @@ export function Tasks({
     setEditingTask(null);
   };
 
-  const getStatusLabel = (status: Status) => {
-    if (status === Status.FINISHED) return "Completed";
-    if (status === Status.PROGRESS) return "In Progress";
+  const getStatusLabel = (status: TaskStatus) => {
+    if (status === TaskStatus.FINISHED) return "Completed";
+    if (status === TaskStatus.PROGRESS) return "In Progress";
     return "Todo";
   };
 
@@ -125,8 +125,8 @@ export function Tasks({
           </p>
         ) : (
           tasks.map((task) => {
-            const isSelected = task.id === selectedTaskId;
-            const isCompleted = task.status === Status.FINISHED;
+            const isSelected = task.id === selectedTask?.id!;
+            const isCompleted = task.status === TaskStatus.FINISHED;
 
             return (
               <div
@@ -152,7 +152,7 @@ export function Tasks({
                       className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         isCompleted
                           ? "bg-emerald-500/10 text-emerald-400"
-                          : task.status === Status.PROGRESS
+                          : task.status === TaskStatus.PROGRESS
                           ? "bg-amber-500/10 text-amber-400"
                           : "bg-slate-700 text-slate-400"
                       }`}
@@ -183,7 +183,7 @@ export function Tasks({
                     variant={isSelected ? "secondary" : "default"}
                     size="sm"
                     disabled={isCompleted}
-                    onClick={() => onSelectTask(isSelected ? null : task.id)}
+                    onClick={() => onSelectTask(isSelected ? null : task)}
                     className={`font-semibold ${
                       isCompleted
                         ? ""
@@ -285,7 +285,7 @@ export function Tasks({
           </form>
         </DialogContent>
       </Dialog>
--
+
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 max-w-sm">
           <DialogHeader>

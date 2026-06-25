@@ -1,21 +1,20 @@
-import type { Period } from "./Period.ts";
-import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
+import type {BaseEntity} from "@/model/BaseEntity.ts";
+import type {StoreOptions} from "@/storage/indexDb.ts";
 
-export type CycleType = {
-  id: number;
-  name: string;
-  periods: Period[];
-};
-export class Cycle implements StorableInstance {
-  static readonly storeName: string = "cycle";
-  static readonly keyPath: string = "id";
-  static readonly indexes?: IndexDefinition[] = [
-    { name: "by_id", keyPath: "id", options: { unique: true } },
-  ];
+export const defaultCycle = { name: "Cycle par défaut" };
 
-  constructor(
-    public id: number,
-    public name: string,
-    public periods: Period[],
-  ) {}
+export const CycleStoreOptions: StoreOptions = {
+    name: 'cycle',
+    keyPath: 'id',
+    indexes: [
+        { name: "by_id", keyPath: "id", options: { unique: true } },
+        { name: "by_user_id", keyPath: "user_id" }
+    ]
+}
+
+export interface Cycle extends BaseEntity {
+    name: string;
+    // periods: Period[];
+
+    user_id: string;
 }

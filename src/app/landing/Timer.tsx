@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Period } from "@/model/Period";
+import { PeriodType, type Period } from "@/model/Period";
 import { Button } from "@/components/ui/button";
 
 interface TimerProps {
@@ -11,9 +11,9 @@ interface TimerProps {
   onTick: () => void;
 }
 
-const PERIOD_LABELS: Record<string, string> = {
-  work: "Travail",
-  break: "Pause",
+const PERIOD_LABELS: Record<PeriodType, string> = {
+  [PeriodType.WORK]: "Travail",
+  [PeriodType.REST]: "Pause",
 };
 
 export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, elapsedBeforeCurrent, onTick }: TimerProps) {
@@ -54,13 +54,12 @@ export function Timer({ currentPeriod, onNext, onPrevious, totalSessionTime, ela
   const totalElapsed = elapsedBeforeCurrent + currentPeriodElapsed;
 
   const getHeaderStyle = () => {
-    switch (String(currentPeriod.typePeriode)) {
-      case "work": return "text-rose-400 bg-rose-400/10";
-      default: return "text-cyan-400 bg-cyan-400/10";
-    }
+    return currentPeriod.typePeriode === PeriodType.WORK
+      ? "text-rose-400 bg-rose-400/10"
+      : "text-cyan-400 bg-cyan-400/10";
   };
 
-  const displayName = PERIOD_LABELS[String(currentPeriod.typePeriode)] || "Période";
+  const displayName = PERIOD_LABELS[currentPeriod.typePeriode] ?? "Période";
 
   return (
     <div className="bg-slate-800/80 backdrop-blur-md text-white p-8 rounded-2xl shadow-2xl max-w-md mx-auto border border-slate-700/50 text-center">

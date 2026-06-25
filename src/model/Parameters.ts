@@ -1,24 +1,19 @@
-import type { IndexDefinition, StorableInstance } from "@/storage/IStorable.ts";
+export const defaultParams: Parameters = {
+    notificationsOn:   true,
+    autoStartWork:     false,
+    autoStartRest:     false,
+    autoRestartCycle:  false,
+}
 
-export type ParametersType = {
-  id: number;
-  autoStartWork: boolean;
-  autoStartRest: boolean;
-  autoRestartCycle: boolean;
-  notificationsOn: boolean;
-};
-export class Parameters implements StorableInstance {
-  static readonly storeName: string = "parameters";
-  static readonly keyPath: string = "id";
-  static readonly indexes?: IndexDefinition[] = [
-    { name: "by_id", keyPath: "id", options: { unique: true } },
-  ];
+export interface Parameters {
+    // static readonly storeName: string = 'parameters';
+    // static readonly keyPath: string = 'id';
+    // static readonly indexes?: IndexDefinition[] = [
+    //     {name: "by_id", keyPath: "id", options: {unique: true}}
+    // ];
 
-  constructor(
-    public id: number,
-    public autoStartWork: boolean,
-    public autoStartRest: boolean,
-    public autoRestartCycle: boolean,
-    public notificationsOn: boolean,
-  ) {}
+    autoStartWork: boolean;
+    autoStartRest: boolean;
+    autoRestartCycle: boolean;
+    notificationsOn: boolean;
 }

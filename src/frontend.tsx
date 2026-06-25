@@ -12,6 +12,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardPage from "./app/dashboard/DashboardPage";
 import ParamsPage from "./app/setting/SettingsPage";
 import { LandingPage } from "./app/landing/LandingPage";
+import { AuthPage } from "./app/auth/AuthPage";
 
 // Check to avoid multiple calls
 let hasStarted = false;
@@ -34,6 +35,7 @@ function start() {
         <Route index element={<LandingPage />}/>
         <Route path="dashboard" element={<DashboardPage />}/>
         <Route path="settings" element={<ParamsPage />}/>
+        <Route path="authentification" element={<AuthPage />}/>
       </Route>
     </Routes>
   </BrowserRouter>);
