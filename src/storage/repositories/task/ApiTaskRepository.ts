@@ -15,7 +15,7 @@ export class ApiTaskRepository implements ITaskRepository, IApiRepository<Task> 
      * @param id The id of the task to retrieve
      */
     async getById(id: string): Promise<Task | undefined> {
-        const data = await apiFetch(`/api/task/${id}`, {
+        const data = await apiFetch(`/api/tasks/${id}`, {
             method: 'GET',
         });
         return parseEntity(TaskSchema, data, id);
@@ -27,7 +27,7 @@ export class ApiTaskRepository implements ITaskRepository, IApiRepository<Task> 
      * @param entity The updated task data
      */
     async update(id: string, entity: Partial<Task>): Promise<Task> {
-        const data = await apiFetch(`/api/task/${id}`, {
+        const data = await apiFetch(`/api/tasks/${id}`, {
             method: 'PUT',
             body: JSON.stringify(entity),
         });
@@ -39,7 +39,7 @@ export class ApiTaskRepository implements ITaskRepository, IApiRepository<Task> 
      * @param id The id of the task to delete
      */
     async delete(id: string): Promise<void> {
-        await apiFetch(`/api/task/${id}`, {
+        await apiFetch(`/api/tasks/${id}`, {
             method: 'DELETE',
         });
     }
