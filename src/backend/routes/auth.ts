@@ -39,7 +39,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       set.status = 201;
       return validateResponse(UserSchema, await getUserById(user.id));
     } catch (err: any) {
-      if (err.code === "23505") {
+      if (err.errno === "23505") {
         set.status = 409;
         return { error: "Email already in use" };
       }

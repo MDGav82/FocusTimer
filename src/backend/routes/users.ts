@@ -83,7 +83,7 @@ export const userRoutes = new Elysia()
       if (!updated) { set.status = 404; return { error: "User not found" }; }
       return validateResponse(UserSchema, await getUserById(id));
     } catch (err: any) {
-      if (err.code === "23505") { set.status = 409; return { error: "Email already in use" }; }
+      if (err.errno === "23505") { set.status = 409; return { error: "Email already in use" }; }
       set.status = 500;
       return { error: "Internal server error" };
     }
