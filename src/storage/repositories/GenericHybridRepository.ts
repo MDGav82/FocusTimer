@@ -50,7 +50,7 @@ export class GenericHybridRepository<T extends BaseEntity> implements IRepositor
 
         await this.outbox.enqueue({
             op: 'UPDATE',
-            entity: this.local.storeName,
+            entityType: this.local.storeName,
             entityId: id,
             payload: data,
         });
@@ -72,7 +72,7 @@ export class GenericHybridRepository<T extends BaseEntity> implements IRepositor
 
         await this.outbox.enqueue({
             op: 'DELETE',
-            entity: this.local.storeName,
+            entityType: this.local.storeName,
             entityId: id,
             payload: undefined
         });

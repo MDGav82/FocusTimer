@@ -5,6 +5,7 @@ import { apiFetch, parseEntity } from "@/storage/apiFetch.ts";
 import { UserSchema } from "@/model/schemas.ts";
 import type { User } from "@/model/User.ts";
 import { LogOut, User as UserIcon } from "lucide-react";
+import {syncEngine} from "@/storage/sync";
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -70,7 +71,8 @@ export function AuthPage() {
           headers: { "Content-Type": "application/json" },
         });
       }
-      
+
+      syncEngine.processQueue()
       const user = parseEntity(UserSchema, data) as User;
       await UserRepository.updateSessionMeta({
         lastUserId: user.id,

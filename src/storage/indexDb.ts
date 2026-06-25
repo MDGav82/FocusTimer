@@ -7,7 +7,7 @@ import {UserStoreOptions, UserMetaStoreOptions} from "@/model/User.ts";
 import {OutboxStoreOptions} from "@/storage/sync/OutboxQueue.ts";
 
 const DB_NAME = "focusTimer";
-const DB_VERSION = 3;
+const DB_VERSION = 6;
 
 export type StoreOptions = {
     name: string,
@@ -33,12 +33,16 @@ export function getIndexedDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onupgradeneeded = (_event) => {
+        request.onupgradeneeded = (event) => {
             const db = request.result;
+            // @ts-ignore
+            const tx = (event.target?.transaction) as IDBTransaction;
             for (const store of stores) {
-                if (!db.objectStoreNames.contains(store.name)) {
-                    const objectStore = db.createObjectStore(store.name, {keyPath: store.keyPath});
-                    for (const idxOpt of store.indexes ?? []) {
+                const objectStore = !db.objectStoreNames.contains(store.name)
+                    ? db.createObjectStore(store.name, {keyPath: store.keyPath})
+                    : tx.objectStore(store.name)
+                for (const idxOpt of store.indexes ?? []) {
+                    if (!objectStore.indexNames.contains(idxOpt.name)) {
                         objectStore.createIndex(idxOpt.name, idxOpt.keyPath, idxOpt.options);
                     }
                 }

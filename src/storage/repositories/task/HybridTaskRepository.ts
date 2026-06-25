@@ -12,7 +12,7 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
 
     constructor(db: IDBDatabase) {
         const api = new ApiTaskRepository();
-        const local = new IdbTaskRepository(db, 'task');
+        const local = new IdbTaskRepository(db);
         const outbox = new OutboxQueue<Task>(db);
         super(api, local, outbox);
     }
@@ -40,9 +40,9 @@ export class HybridTaskRepository extends GenericHybridRepository<Task> implemen
 
         await this.outbox.enqueue({
             op: 'CREATE',
-            entity: 'task',
+            entityType: 'task',
             entityId: task.id,
-            payload: pureTask,
+            payload: task,
         })
         return task;
     }

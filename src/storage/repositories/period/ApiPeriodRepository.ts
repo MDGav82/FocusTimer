@@ -2,8 +2,13 @@ import type {Period} from "@/model/Period.ts";
 import type {IPeriodRepository} from "@/storage/repositories/period/IPeriodRepository.ts";
 import {apiFetch, parseEntity, parseEntityList} from "@/storage/apiFetch.ts";
 import {PeriodSchema} from "@/model/schemas.ts";
+import type {IApiRepository} from "@/storage/repositories/IApiRepository.ts";
 
-export class ApiPeriodRepository implements IPeriodRepository {
+export class ApiPeriodRepository implements IPeriodRepository, IApiRepository<Period> {
+    async create(period: Period): Promise<void> {
+        await this.createPeriodForCycle(period.cycle_id, period);
+    }
+
     /**
      * Get a period by its id
      * @param id The id of the period to retrieve
