@@ -7,7 +7,7 @@ import type { User } from "@/model/User.ts";
 import { LogOut, User as UserIcon } from "lucide-react";
 import {syncEngine} from "@/storage/sync";
 
-export function AuthPage() {
+export default function AuthPage() {
   const navigate = useNavigate();
   
   // false = Inscription, true = Connexion
