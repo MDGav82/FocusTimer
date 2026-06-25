@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { log } from "../logger";
 
 export const historyRoutes = new Elysia()
   .use(requireAuth)
@@ -21,7 +22,8 @@ export const historyRoutes = new Elysia()
         WHERE h.user_id = ${id}
         ORDER BY h.start_date DESC
       `;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -45,7 +47,8 @@ export const historyRoutes = new Elysia()
       `;
       set.status = 201;
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -67,7 +70,8 @@ export const historyRoutes = new Elysia()
       `;
       if (!entry) { set.status = 404; return { error: "History entry not found" }; }
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -88,7 +92,8 @@ export const historyRoutes = new Elysia()
       `;
       if (!entry) { set.status = 404; return { error: "History entry not found" }; }
       return entry;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -99,7 +104,8 @@ export const historyRoutes = new Elysia()
       const [deleted] = await db`DELETE FROM history WHERE id = ${id} AND user_id = ${user!.id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "History entry not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }

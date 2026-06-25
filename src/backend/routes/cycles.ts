@@ -3,6 +3,7 @@ import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { CycleCreateSchema,CycleUpdateSchema, CycleSchema, PeriodSchema, PeriodInputSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
+import { log } from "../logger";
 
 // Index matches the frontend PeriodType enum (WORK=0, REST=1)
 const PERIOD_TYPE_NAMES = ["work", "break"];
@@ -55,7 +56,8 @@ export const cycleRoutes = new Elysia()
         SELECT id, user_id, name, updated_at FROM cycle WHERE user_id = ${id} ORDER BY id ASC
       `;
       return validateResponseList(CycleSchema, cycles.map(withSyncMeta));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -72,7 +74,8 @@ export const cycleRoutes = new Elysia()
       `;
       set.status = 201;
       return validateResponse(CycleSchema, withSyncMeta(cycle));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -83,7 +86,8 @@ export const cycleRoutes = new Elysia()
       const cycle = await getCycleById(id, user!.id);
       if (!cycle) { set.status = 404; return { error: "Cycle not found" }; }
       return validateResponse(CycleSchema, cycle);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -103,7 +107,8 @@ export const cycleRoutes = new Elysia()
       const result = await getCycleById(id, user!.id);
       if (!result) { set.status = 404; return { error: "Cycle not found" }; }
       return validateResponse(CycleSchema, result);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -114,7 +119,8 @@ export const cycleRoutes = new Elysia()
       const [deleted] = await db`DELETE FROM cycle WHERE id = ${id} AND user_id = ${user!.id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "Cycle not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -132,7 +138,8 @@ export const cycleRoutes = new Elysia()
         ORDER BY p.index ASC
       `;
       return validateResponseList(PeriodSchema, periods.map(toPeriodJson));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -156,7 +163,8 @@ export const cycleRoutes = new Elysia()
       if (!period) { set.status = 404; return { error: "Cycle not found" }; }
       set.status = 201;
       return validateResponse(PeriodSchema, await getPeriodById(period.id, user!.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -167,7 +175,8 @@ export const cycleRoutes = new Elysia()
       const period = await getPeriodById(id, user!.id);
       if (!period) { set.status = 404; return { error: "Period not found" }; }
       return validateResponse(PeriodSchema, period);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -190,7 +199,8 @@ export const cycleRoutes = new Elysia()
       `;
       if (!updated) { set.status = 404; return { error: "Period not found" }; }
       return validateResponse(PeriodSchema, await getPeriodById(id, user!.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -205,7 +215,8 @@ export const cycleRoutes = new Elysia()
       `;
       if (!deleted) { set.status = 404; return { error: "Period not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }

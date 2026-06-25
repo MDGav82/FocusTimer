@@ -4,6 +4,7 @@ import { jwtPlugin, COOKIE_MAX_AGE } from "../plugins/auth";
 import { getUserById } from "./users";
 import { AuthCredentialsSchema, RegisterSchema, UserSchema } from "@/model/schemas.ts";
 import { validateResponse } from "../validateResponse";
+import { log } from "../logger";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .use(jwtPlugin)
@@ -43,6 +44,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         set.status = 409;
         return { error: "Email already in use" };
       }
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -80,7 +82,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       });
 
       return validateResponse(UserSchema, await getUserById(user.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -120,7 +123,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         return { error: "Unauthorized" };
       }
       return validateResponse(UserSchema, user);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }

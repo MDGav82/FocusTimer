@@ -3,6 +3,7 @@ import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import {TaskCreateSchema,TaskUpdateSchema, TaskSchema } from "@/model/schemas.ts";
 import { validateResponse, validateResponseList } from "../validateResponse";
+import { log } from "../logger";
 
 // Index matches the frontend Status enum (PENDING=0, PROGRESS=1, FINISHED=2)
 const STATUS_NAMES = ["pending", "progress", "finish"];
@@ -54,7 +55,8 @@ export const taskRoutes = new Elysia()
         ORDER BY t.creation_date DESC
       `;
       return validateResponseList(TaskSchema, rows.map(toTaskJson));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -78,7 +80,8 @@ export const taskRoutes = new Elysia()
       `;
       set.status = 201;
       return validateResponse(TaskSchema, await getTaskById(task.id, user!.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -89,7 +92,8 @@ export const taskRoutes = new Elysia()
       const task = await getTaskById(id, user!.id);
       if (!task) { set.status = 404; return { error: "Task not found" }; }
       return validateResponse(TaskSchema, task);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -119,7 +123,8 @@ export const taskRoutes = new Elysia()
       `;
       if (!updated) { set.status = 404; return { error: "Task not found" }; }
       return validateResponse(TaskSchema, await getTaskById(id, user!.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -130,7 +135,8 @@ export const taskRoutes = new Elysia()
       const [deleted] = await db`DELETE FROM task WHERE id = ${id} AND user_id = ${user!.id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "Task not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }

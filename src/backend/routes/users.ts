@@ -3,6 +3,7 @@ import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { UserSchema, UserUpdateSchema, ParametersUpdateSchema } from "@/model/schemas.ts";
 import { validateResponse } from "../validateResponse";
+import { log } from "../logger";
 
 export function toUserJson(row: any) {
   return {
@@ -44,7 +45,8 @@ export const userRoutes = new Elysia()
       const found = await getUserById(id);
       if (!found) { set.status = 404; return { error: "User not found" }; }
       return validateResponse(UserSchema, found);
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -68,6 +70,7 @@ export const userRoutes = new Elysia()
       return validateResponse(UserSchema, await getUserById(id));
     } catch (err: any) {
       if (err.errno === "23505") { set.status = 409; return { error: "Email already in use" }; }
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -79,7 +82,8 @@ export const userRoutes = new Elysia()
       const [deleted] = await db`DELETE FROM users WHERE id = ${id} RETURNING id`;
       if (!deleted) { set.status = 404; return { error: "User not found" }; }
       set.status = 204;
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
@@ -104,7 +108,8 @@ export const userRoutes = new Elysia()
       `;
       if (!updated) { set.status = 404; return { error: "User not found" }; }
       return validateResponse(UserSchema, await getUserById(updated.id));
-    } catch {
+    } catch (err) {
+      log.error("Request handler failed", err);
       set.status = 500;
       return { error: "Internal server error" };
     }
